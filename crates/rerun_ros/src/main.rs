@@ -1,5 +1,6 @@
 use anyhow::{Error, Result};
 use clap::Parser;
+use rclrs::CreateBasicExecutor;
 use rerun_ros::config::ConfigParser;
 use std::env;
 use std::sync::Arc;
@@ -24,7 +25,8 @@ fn main() -> Result<(), Error> {
     let config_parser = ConfigParser::new(&bridge_args.config_file)?;
 
     let context = rclrs::Context::new(env::args())?;
-    let node = rclrs::create_node(&context, "rerun_ros_bridge")?;
+    let executor = context.create_basic_executor();
+    let node = executor.create_node("rerun_ros_bridge")?;
     // Clippy does not like iterating over the keys of a HashMap, so we collect it into a Vec
     let config_entries: Vec<_> = config_parser.conversions().iter().collect();
 
