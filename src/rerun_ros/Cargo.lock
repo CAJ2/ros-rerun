@@ -1284,44 +1284,12 @@ name = "action_msgs"
 version = "2.0.3"
 
 [[patch.unused]]
-name = "example_interfaces"
-version = "0.12.0"
-
-[[patch.unused]]
-name = "lifecycle_msgs"
-version = "2.0.3"
-
-[[patch.unused]]
-name = "rcl_interfaces"
-version = "2.0.3"
-
-[[patch.unused]]
-name = "rclrs_example_msgs"
-version = "0.4.1"
-
-[[patch.unused]]
-name = "rosgraph_msgs"
-version = "2.0.3"
-
-[[patch.unused]]
 name = "service_msgs"
-version = "2.0.3"
-
-[[patch.unused]]
-name = "statistics_msgs"
 version = "2.0.3"
 
 [[patch.unused]]
 name = "std_srvs"
 version = "5.3.6"
-
-[[patch.unused]]
-name = "test_msgs"
-version = "2.0.3"
-
-[[patch.unused]]
-name = "type_description_interfaces"
-version = "2.0.3"
 
 [[patch.unused]]
 name = "unique_identifier_msgs"
