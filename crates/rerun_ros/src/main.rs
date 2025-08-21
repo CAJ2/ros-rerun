@@ -1,6 +1,6 @@
 use anyhow::{Error, Result};
 use clap::Parser;
-use rclrs::{CreateBasicExecutor, InitOptions};
+use rclrs::{CreateBasicExecutor, InitOptions, RclrsErrorFilter, SpinOptions};
 use rerun_ros::config::ConfigParser;
 use std::env;
 use std::sync::Arc;
@@ -25,27 +25,30 @@ fn main() -> Result<(), Error> {
     let config_parser = ConfigParser::new(&bridge_args.config_file)?;
 
     let context = rclrs::Context::new(env::args(), InitOptions::new())?;
-    let executor = context.create_basic_executor();
+    let mut executor = context.create_basic_executor();
     let node = executor.create_node("rerun_ros_bridge")?;
+    let worker = node.create_worker::<usize>(0);
     // Clippy does not like iterating over the keys of a HashMap, so we collect it into a Vec
     let config_entries: Vec<_> = config_parser.conversions().iter().collect();
 
     // Prevent the subscriptions from being dropped
     let mut _subscriptions = Vec::new();
     for ((topic_name, _frame_id), (ros_type, _entity_path)) in config_entries {
-        let msg_spec = rerun_ros::ros_introspection::MsgSpec::new(ros_type)?;
+        let _msg_spec = rerun_ros::ros_introspection::MsgSpec::new(ros_type)?;
 
         println!("Subscribing to topic: {topic_name} with type: {ros_type}");
-        let _generic_subscription = node.create_generic_subscription(
+        let sub = worker.create_dynamic_subscription(
+            ros_type.as_str().try_into()?,
             topic_name,
-            ros_type,
-            rclrs::QOS_PROFILE_DEFAULT,
-            move |_msg: rclrs::SerializedMessage| {
-                let _msg_spec = Arc::new(&msg_spec);
-                // Process message and pass it to rerun
+            move |num: &mut usize, msg, _msg_info| {
+                *num += 1;
+                println!("#{} | I heard: '{:#?}'", *num, msg.structure());
             },
         )?;
-        _subscriptions.push(_generic_subscription);
+        _subscriptions.push(sub);
     }
+
+    println!("Bridge is running. Press Ctrl+C to exit.");
+    executor.spin(SpinOptions::default()).first_error()?;
     Ok(())
 }

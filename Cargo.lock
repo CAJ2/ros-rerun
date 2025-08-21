@@ -13,6 +13,16 @@ dependencies = [
 
 [[package]]
 name = "ament_rs"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b901da946b7b1620d44563e10c7634681af855a7f5fb59bd09b6eb801dcf6e49"
+dependencies = [
+ "itertools 0.8.2",
+ "walkdir",
+]
+
+[[package]]
+name = "ament_rs"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68248386ad9d8f95d809309d97ae10ae5984818a563b30c13c9b44aa41f439da"
@@ -233,13 +243,6 @@ dependencies = [
  "futures-io",
  "futures-lite",
  "piper",
-]
-
-[[package]]
-name = "builtin_interfaces"
-version = "2.0.3"
-dependencies = [
- "rosidl_runtime_rs 0.4.2",
 ]
 
 [[package]]
@@ -574,6 +577,15 @@ checksum = "7943c866cc5cd64cbc25b2e01621d07fa8eb2a1a23160ee81ce38704e97b8ecf"
 
 [[package]]
 name = "itertools"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f56a2d0bc861f9165be4eb3442afd3c236d8a98afd426f65d92324ae1091a484"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
@@ -754,13 +766,15 @@ checksum = "69cdb34c158ceb288df11e18b4bd39de994f6657d83847bdffdbd7f346754b0f"
 [[package]]
 name = "rclrs"
 version = "0.4.1"
-source = "git+https://github.com/CAJ2/ros2_rust.git?branch=main#eca3f9ae9269b5de18988054b9a4331c4af657fb"
+source = "git+https://github.com/luca-della-vedova/ros2_rust.git?branch=dynamic_messages#9892e4bd60e325a140c70f8f8e071715c678e80c"
 dependencies = [
+ "ament_rs 0.2.1",
  "async-std",
  "bindgen",
  "cfg-if",
  "futures",
- "rosidl_runtime_rs 0.4.2",
+ "libloading",
+ "rosidl_runtime_rs 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -796,7 +810,7 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 name = "rerun_ros"
 version = "0.1.0"
 dependencies = [
- "ament_rs",
+ "ament_rs 0.3.0",
  "anyhow",
  "cdr",
  "clap",
@@ -805,7 +819,6 @@ dependencies = [
  "regex",
  "rosidl_runtime_rs 0.4.2 (git+https://github.com/ros2-rust/rosidl_runtime_rs?branch=main)",
  "serde",
- "std_msgs",
  "tempfile",
  "toml",
  "widestring",
@@ -814,6 +827,8 @@ dependencies = [
 [[package]]
 name = "rosidl_runtime_rs"
 version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2dfa13e2f70baf51dfc3f49ffa6f23fa7de8452dfa56a6ce5712620986cf9196"
 dependencies = [
  "cfg-if",
 ]
@@ -900,14 +915,6 @@ name = "slab"
 version = "0.4.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04dc19736151f35336d325007ac991178d504a119863a2fcb3758cdb5e52c50d"
-
-[[package]]
-name = "std_msgs"
-version = "5.3.6"
-dependencies = [
- "builtin_interfaces",
- "rosidl_runtime_rs 0.4.2",
-]
 
 [[package]]
 name = "strsim"
@@ -1278,19 +1285,3 @@ checksum = "6f42320e61fe2cfd34354ecb597f86f413484a798ba44a8ca1165c58d42da6c1"
 dependencies = [
  "bitflags",
 ]
-
-[[patch.unused]]
-name = "action_msgs"
-version = "2.0.3"
-
-[[patch.unused]]
-name = "service_msgs"
-version = "2.0.3"
-
-[[patch.unused]]
-name = "std_srvs"
-version = "5.3.6"
-
-[[patch.unused]]
-name = "unique_identifier_msgs"
-version = "2.5.0"
