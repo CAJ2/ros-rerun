@@ -1,0 +1,21 @@
+[api]
+enabled = true
+address = "127.0.0.1:9888"
+
+[messages.status]
+topic = "status"
+ros_type = "std_msgs/msg/String"
+archetype = "TextLog"
+
+[messages.imu]
+topic = "imu"
+ros_type = "sensor_msgs/msg/Imu"
+archetype = "Imu"
+
+[transforms.imu_rate]
+inputs = ["imu"]
+type = "throttle"
+frequency = 10.0
+
+[db]
+data_dir = "/path/to/data"

@@ -1,54 +1,70 @@
-use anyhow::{Error, Result};
-use clap::Parser;
-use rclrs::{CreateBasicExecutor, InitOptions, RclrsErrorFilter, SpinOptions};
-use rerun_ros::config::ConfigParser;
+use log::{debug, info};
+use rclrs::{CreateBasicExecutor as _, InitOptions, RclrsErrorFilter as _, SpinOptions, Value};
 use std::env;
-use std::sync::Arc;
 
-/// A bridge between rerun and ROS
-#[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
-struct BridgeArgs {
-    /// Path to the configuration file in TOML format
-    #[arg(short, long)]
-    config_file: String,
-}
+use crate::{
+    cli::{Options, Subcommands},
+    config::CONFIG,
+};
 
-fn main() -> Result<(), Error> {
-    let bridge_args = BridgeArgs::parse();
+mod cli;
+mod config;
 
-    if bridge_args.config_file.is_empty() {
-        return Ok(());
+fn main() -> anyhow::Result<()> {
+    let options = Options::new();
+
+    // Initialize logging
+    env_logger::Builder::new()
+        .filter_level(options.log_level)
+        .init();
+
+    config::load(&options);
+
+    match options.subcommands {
+        Some(Subcommands::Configure(configure_options)) => {
+            println!("Configuring with options: {:?}", configure_options);
+        }
+        None => run()?,
     }
 
-    println!("Starting bridge");
-    let config_parser = ConfigParser::new(&bridge_args.config_file)?;
+    Ok(())
+}
+
+fn run() -> anyhow::Result<()> {
+    info!("Starting Rerun ROS bridge...");
 
     let context = rclrs::Context::new(env::args(), InitOptions::new())?;
     let mut executor = context.create_basic_executor();
     let node = executor.create_node("rerun_ros_bridge")?;
     let worker = node.create_worker::<usize>(0);
-    // Clippy does not like iterating over the keys of a HashMap, so we collect it into a Vec
-    let config_entries: Vec<_> = config_parser.conversions().iter().collect();
+    let cfg = CONFIG.read();
+    let config_entries: Vec<_> = cfg.messages().collect();
 
     // Prevent the subscriptions from being dropped
     let mut _subscriptions = Vec::new();
-    for ((topic_name, _frame_id), (ros_type, _entity_path)) in config_entries {
+    for (_name, msg) in config_entries {
+        let (topic, ros_type) = (msg.topic(), msg.ros_type());
+        info!("Subscribing to topic: {topic} with type: {ros_type}");
         let _msg_spec = rerun_ros::ros_introspection::MsgSpec::new(ros_type)?;
 
-        println!("Subscribing to topic: {topic_name} with type: {ros_type}");
         let sub = worker.create_dynamic_subscription(
-            ros_type.as_str().try_into()?,
-            topic_name,
+            ros_type.try_into()?,
+            topic,
             move |num: &mut usize, msg, _msg_info| {
                 *num += 1;
                 println!("#{} | I heard: '{:#?}'", *num, msg.structure());
+                msg.structure().fields.iter().for_each(|f| {
+                    if let Some(v) = msg.get(f.name.as_str()) {
+                        println!("  - {}: {:?}", f.name, v);
+                    }
+                });
             },
         )?;
         _subscriptions.push(sub);
     }
 
-    println!("Bridge is running. Press Ctrl+C to exit.");
+    info!("Bridge is running. Press Ctrl+C to exit.");
     executor.spin(SpinOptions::default()).first_error()?;
+
     Ok(())
 }
