@@ -1,5 +1,5 @@
 [package]
-# cargo-ament-build does not handle the .workspace = true option
+# cargo-ament-build throws an error when using .workspace = true
 authors = ["rerun.io <opensource@rerun.io>"]
 edition = "2021"
 homepage = "https://github.com/rerun-io/rerun-ros"

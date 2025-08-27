@@ -10869,3 +10869,7 @@ dependencies = [
  "syn",
  "winnow",
 ]
+
+[[patch.unused]]
+name = "rerun_ros"
+version = "0.1.0"
