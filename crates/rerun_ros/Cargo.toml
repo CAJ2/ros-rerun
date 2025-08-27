@@ -27,8 +27,10 @@ default = []
 
 
 [dependencies]
+ahash.workspace = true
 ament_rs.workspace = true
 anyhow.workspace = true
+async-trait.workspace = true
 cdr.workspace = true
 clap.workspace = true
 env_logger.workspace = true
@@ -41,6 +43,7 @@ rosidl_runtime_rs.workspace = true
 serde.workspace = true
 tempfile.workspace = true
 thiserror.workspace = true
+tokio = { workspace = true, features = ["full"] }
 toml.workspace = true
 widestring.workspace = true
 
