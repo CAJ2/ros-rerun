@@ -1,18 +1,17 @@
 [package]
-authors.workspace = true
-categories = []                                                      # TODO: fill in if you plan on publishing the crate
-description = ""                                                     # TODO: fill in if you plan on publishing the crate
-edition.workspace = true
-homepage.workspace = true
+# cargo-ament-build does not handle the .workspace = true option
+authors = ["rerun.io <opensource@rerun.io>"]
+edition = "2021"
+homepage = "https://github.com/rerun-io/rerun-ros"
 include = ["LICENSE-APACHE", "LICENSE-MIT", "**/*.rs", "Cargo.toml"]
 keywords = []                                                        # TODO: fill in if you plan on publishing the crate
-license.workspace = true
+license = "MIT OR Apache-2.0"
 name = "rerun_ros"
 publish = false                                                      # TODO: set to `true` if you plan on publishing the crate
-readme = "README.md"
-repository.workspace = true
-rust-version.workspace = true
 version = "0.1.0"
+readme = "README.md"
+repository = "https://github.com/rerun-io/rerun-ros"
+rust-version = "1.85"
 
 [lints]
 workspace = true

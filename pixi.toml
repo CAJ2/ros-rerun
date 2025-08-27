@@ -14,7 +14,8 @@ version = "0.1.0"
 [tasks]
 install-cargo-ament-build = "cargo install --git https://github.com/ros2-rust/cargo-ament-build"
 build = { cmd = "colcon build", depends-on = ["install-cargo-ament-build"] }
-rerun_ros = { cmd = "install/rerun_ros/bin/rerun_ros", depends-on = ["build"] }
+test = { cmd = "cargo test" }
+rerun_ros = { cmd = "cargo run" }
 lint-typos = "typos"
 
 [activation]
