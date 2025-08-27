@@ -11,7 +11,7 @@ use crate::config::defs::Config;
 pub struct Options {
     /// Path to the configuration file
     #[arg(short, long, value_name = "FILE", value_hint = ValueHint::FilePath)]
-    pub config_file: Option<PathBuf>,
+    pub config: Option<PathBuf>,
 
     /// Set the log level
     #[arg(long, default_value_t = LevelFilter::Info)]
@@ -48,7 +48,7 @@ pub enum Subcommands {
 #[derive(Args, Debug)]
 pub struct ConfigureOptions {
     #[arg(short, long, value_name = "FILE", value_hint = ValueHint::FilePath)]
-    pub config_file: Option<PathBuf>,
+    pub config: Option<PathBuf>,
 }
 
 #[cfg(test)]
@@ -60,7 +60,7 @@ mod tests {
     #[test]
     fn cli_override_config() {
         let opts = Options {
-            config_file: Some(PathBuf::from("config.toml")),
+            config: Some(PathBuf::from("config.toml")),
             log_level: LevelFilter::Debug,
             listen: Some("1.1.1.1:9001".into()),
             subcommands: None,

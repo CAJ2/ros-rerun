@@ -30,7 +30,7 @@ pub enum ConfigError {
 /// Load the configuration file.
 pub fn load(options: &Options) {
     let config_path = options
-        .config_file
+        .config
         .clone()
         .or_else(|| Some(PathBuf::from("config.toml")));
 
@@ -119,8 +119,8 @@ mod tests {
         assert_eq!(config.messages().count(), 1);
         let (name, msg) = config.messages().next().unwrap();
         assert_eq!(name, "example_msg");
-        assert_eq!(msg.topic(), "example_topic");
-        assert_eq!(msg.ros_type(), "std_msgs/String");
-        assert_eq!(msg.archetype(), "TextLog");
+        assert_eq!(msg.topic, "example_topic");
+        assert_eq!(msg.ros_type, "std_msgs/String");
+        assert_eq!(msg.archetype, "TextLog");
     }
 }

@@ -4,6 +4,11 @@ use std::{collections::HashMap, net::IpAddr};
 
 use serde::{Deserialize, Serialize};
 
+/// Top level configuration
+///
+/// Any changes to the configuration will eventually be reflected
+/// in the topology, but this process happens asynchronously
+/// to allow pending logs to flush.
 #[derive(Deserialize, Serialize, Default, Clone, Debug, PartialEq, Eq)]
 pub struct Config {
     /// GRPC server configuration
@@ -12,7 +17,11 @@ pub struct Config {
 
     /// ROS messages configuration
     #[serde(default)]
-    messages: HashMap<String, Message>,
+    pub messages: HashMap<String, MessageSource>,
+
+    /// Rerun SDK streams configuration
+    #[serde(default)]
+    pub streams: HashMap<String, StreamConfig>,
 
     /// Path where config was loaded from.
     #[serde(skip)]
@@ -20,7 +29,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn messages(&self) -> impl Iterator<Item = (&String, &Message)> {
+    pub fn messages(&self) -> impl Iterator<Item = (&String, &MessageSource)> {
         self.messages.iter()
     }
 
@@ -39,7 +48,7 @@ pub struct Api {
 
 impl Default for Api {
     fn default() -> Self {
-        Api {
+        Self {
             enabled: true,
             address: "127.0.0.1:9888".into(),
         }
@@ -56,22 +65,14 @@ impl Api {
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq, Eq)]
-pub struct Message {
-    topic: String,
-    ros_type: String,
-    archetype: String,
+pub struct MessageSource {
+    pub topic: String,
+    pub ros_type: String,
+    pub archetype: String,
 }
 
-impl Message {
-    pub fn topic(&self) -> &str {
-        &self.topic
-    }
-
-    pub fn ros_type(&self) -> &str {
-        &self.ros_type
-    }
-
-    pub fn archetype(&self) -> &str {
-        &self.archetype
-    }
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq, Eq)]
+pub struct StreamConfig {
+    pub inputs: Vec<String>,
+    pub url: String,
 }
