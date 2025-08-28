@@ -1,8 +1,8 @@
-use log::{debug, error, info};
-use rclrs::{CreateBasicExecutor as _, InitOptions, RclrsErrorFilter as _, SpinOptions, Value};
+use log::{error, info};
+use rclrs::{CreateBasicExecutor as _, InitOptions, RclrsErrorFilter as _, SpinOptions};
 use rerun_ros::{
     cli::{Options, Subcommands},
-    config::{self, CONFIG},
+    config,
     node::NodeGraph,
 };
 use std::env;

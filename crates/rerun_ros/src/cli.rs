@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{net::SocketAddr, path::PathBuf};
 
 use clap::{Args, Parser, Subcommand, ValueHint};
 use log::LevelFilter;
@@ -19,7 +19,7 @@ pub struct Options {
 
     /// GRPC server listen address
     #[arg(long)]
-    pub listen: Option<String>,
+    pub listen: Option<SocketAddr>,
 
     /// Subcommand passed to the CLI.
     #[command(subcommand)]
@@ -62,11 +62,11 @@ mod tests {
         let opts = Options {
             config: Some(PathBuf::from("config.toml")),
             log_level: LevelFilter::Debug,
-            listen: Some("1.1.1.1:9001".into()),
+            listen: Some("1.1.1.1:9001".parse().unwrap()),
             subcommands: None,
         };
         opts.override_config(&mut CONFIG.write());
         let config = CONFIG.read();
-        assert_eq!(config.api.address(), "1.1.1.1:9001".parse().unwrap());
+        assert_eq!(config.api.address, "1.1.1.1:9001".parse().unwrap());
     }
 }
