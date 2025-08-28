@@ -2,12 +2,12 @@
 enabled = true
 address = "127.0.0.1:9888"
 
-[messages.status]
+[topics.status]
 topic = "status"
 ros_type = "std_msgs/msg/String"
 archetype = "TextLog"
 
-[messages.imu]
+[topics.imu]
 topic = "imu"
 ros_type = "sensor_msgs/msg/Imu"
 archetype = "Imu"

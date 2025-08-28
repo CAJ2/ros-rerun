@@ -8,7 +8,7 @@ use toml::de::Error as TomlError;
 use toml::ser::Error as TomlSeError;
 
 pub mod defs;
-pub use defs::{Api, Config, DBConfig, MessageSource, StreamConfig};
+pub use defs::{Api, Config, DBConfig, StreamConfig, TopicSource};
 
 use crate::cli::Options;
 
@@ -101,10 +101,10 @@ mod tests {
     }
 
     #[test]
-    fn messages_config() {
+    fn topics_config() {
         let config: Config = toml::from_str(
             r#"
-            [messages.example_msg]
+            [topics.example_msg]
             topic = "example_topic"
             ros_type = "std_msgs/String"
             archetype = "TextLog"
@@ -112,11 +112,40 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(config.messages.len(), 1);
-        let (name, msg) = config.messages.iter().next().unwrap();
+        assert_eq!(config.topics.len(), 1);
+        let (name, topic) = config.topics.iter().next().unwrap();
         assert_eq!(name, "example_msg");
-        assert_eq!(msg.topic, "example_topic");
-        assert_eq!(msg.ros_type, Some("std_msgs/String".into()));
-        assert_eq!(msg.archetype, "TextLog");
+        assert_eq!(topic.topic, "example_topic");
+        assert_eq!(topic.ros_type, Some("std_msgs/String".into()));
+        assert_eq!(topic.archetype, "TextLog");
+    }
+
+    #[test]
+    fn topics_settings_config() {
+        let config: Config = toml::from_str(
+            r#"
+            [topics.example_msg]
+            topic = "example_topic"
+            archetype = "TextLog"
+            field = "example_field"
+            another_setting = "example_value"
+            "#,
+        )
+        .unwrap();
+
+        assert_eq!(config.topics.len(), 1);
+        let (name, topic) = config.topics.iter().next().unwrap();
+        assert_eq!(name, "example_msg");
+        assert_eq!(topic.topic, "example_topic");
+        assert_eq!(topic.ros_type, None);
+        assert_eq!(topic.archetype, "TextLog");
+        assert_eq!(
+            topic.settings.get("field"),
+            Some(&toml::Value::String("example_field".into()))
+        );
+        assert_eq!(
+            topic.settings.get("another_setting"),
+            Some(&toml::Value::String("example_value".into()))
+        );
     }
 }

@@ -95,7 +95,7 @@ pub fn parse_topology_config(
     let mut grpc_sinks = HashMap::new();
     let mut edges: HashMap<ComponentID, Vec<ComponentID>> = HashMap::new();
 
-    for (name, source) in config.messages() {
+    for (name, source) in config.topics() {
         let source_id = ComponentID::TopicSubscriber(name.clone());
         match &source.ros_type {
             Some(ros_type) => {
@@ -189,6 +189,7 @@ impl Display for ComponentID {
 #[cfg(test)]
 mod tests {
     use crate::config;
+    use std::collections::HashMap;
 
     use super::*;
 
@@ -202,15 +203,16 @@ mod tests {
     #[test]
     fn invalid_duplicates() {
         let cfg = config::Config {
-            messages: std::collections::HashMap::from([(
+            topics: HashMap::from([(
                 "comp1".into(),
-                config::MessageSource {
+                config::TopicSource {
                     topic: "example_topic".into(),
                     ros_type: Some("std_msgs/String".into()),
                     archetype: "TextLog".into(),
+                    ..Default::default()
                 },
             )]),
-            streams: std::collections::HashMap::from([(
+            streams: HashMap::from([(
                 "comp1".into(),
                 config::StreamConfig {
                     url: "http://localhost:8080".into(),
@@ -226,15 +228,16 @@ mod tests {
     #[test]
     fn invalid_self_referencing() {
         let cfg = config::Config {
-            messages: std::collections::HashMap::from([(
+            topics: HashMap::from([(
                 "comp1".into(),
-                config::MessageSource {
+                config::TopicSource {
                     topic: "example_topic".into(),
                     ros_type: Some("std_msgs/String".into()),
                     archetype: "TextLog".into(),
+                    ..Default::default()
                 },
             )]),
-            streams: std::collections::HashMap::from([
+            streams: HashMap::from([
                 (
                     "stream1".into(),
                     config::StreamConfig {
