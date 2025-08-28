@@ -1,10 +1,10 @@
 use async_trait::async_trait;
 use rclrs::BaseType;
-use rerun::{Archetype, ArchetypeName};
+use rerun::{Archetype as _, ArchetypeName};
 use serde::{Deserialize, Serialize};
 
 use crate::archetypes::{
-    archetype::{ArchetypeTransformer, MessageVisitor},
+    archetype::{ArchetypeConverter, MessageVisitor},
     ArchetypeData,
 };
 
@@ -30,12 +30,12 @@ impl TextDocument {
 }
 
 #[async_trait]
-impl ArchetypeTransformer for TextDocument {
+impl ArchetypeConverter for TextDocument {
     fn rerun_name(&self) -> ArchetypeName {
         rerun::TextDocument::name()
     }
 
-    async fn transform<'a>(
+    async fn convert<'a>(
         &self,
         topic: &str,
         msg: rclrs::DynamicMessageView<'a>,

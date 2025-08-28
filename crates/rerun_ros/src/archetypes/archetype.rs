@@ -1,32 +1,37 @@
+use ahash::HashMap;
 use anyhow::Result;
 use async_trait::async_trait;
 use rclrs::{BaseType, Value};
-use rerun::{external::re_types_core::ArchetypeName, AsComponents};
+use rerun::external::re_types_core::ArchetypeName;
 
 use crate::archetypes::{text::TextDocument, ArchetypeData};
 
-/// Trait for transforming ROS messages into Rerun archetypes.
+/// Trait for converting ROS messages into Rerun archetypes.
 #[async_trait]
-pub trait ArchetypeTransformer {
+pub trait ArchetypeConverter {
     /// Get the name of the Rerun archetype.
     fn rerun_name(&self) -> ArchetypeName;
 
-    /// Process a dynamic message and transform it into a Rerun archetype.
-    async fn transform<'a>(
+    /// Process a dynamic message and convert it into a Rerun archetype.
+    async fn convert<'a>(
         &self,
         topic: &str,
         msg: rclrs::DynamicMessageView<'a>,
     ) -> Result<ArchetypeData>;
 }
 
-pub fn create_archetype_transformer(
+pub struct ConverterRepository {
+    converters: HashMap<String, Box<dyn ArchetypeConverter>>,
+}
+
+pub fn create_archetype_converter(
     name: &str,
     config: toml::Table,
-) -> Result<Box<dyn ArchetypeTransformer>> {
+) -> Result<Box<dyn ArchetypeConverter>> {
     let name = fully_qualified_name(name);
     match name.as_str() {
         "rerun.archetypes.TextDocument" => TextDocument::from_toml(config)
-            .map(|doc| Ok(Box::new(doc) as Box<dyn ArchetypeTransformer>))?,
+            .map(|doc| Ok(Box::new(doc) as Box<dyn ArchetypeConverter>))?,
         _ => Err(anyhow::anyhow!("Unknown archetype: {name}"))?,
     }
 }
