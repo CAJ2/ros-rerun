@@ -1,5 +1,3 @@
-use std::vec;
-
 use async_trait::async_trait;
 use rclrs::BaseType;
 use rerun::{Archetype as _, ArchetypeName};
@@ -14,7 +12,8 @@ use crate::{
     config::defs::ConverterSettings,
 };
 
-const STD_MSGS_STRING: ROSTypeString<'static> = ROSTypeString("std_msgs", "String");
+const STD_MSGS_STRING: ROSTypeString<'_> = ROSTypeString("std_msgs", "String");
+const TEXT_DOCUMENT_TYPES: &[ROSTypeString<'_>] = &[STD_MSGS_STRING];
 
 #[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct TextDocumentConfig {
@@ -25,14 +24,16 @@ pub struct TextDocumentConfig {
 
 #[derive(Clone, Debug, Default)]
 pub struct TextDocument {
-    ros_types: Vec<ROSTypeName>,
+    topic: String,
+    ros_type: Option<ROSTypeName>,
     config: TextDocumentConfig,
 }
 
 impl TextDocument {
     pub fn new() -> Self {
         Self {
-            ros_types: vec![ROSTypeName::new("std_msgs", "String")],
+            topic: String::new(),
+            ros_type: None,
             config: Default::default(),
         }
     }
@@ -44,15 +45,22 @@ impl ArchetypeConverter for TextDocument {
         rerun::TextDocument::name()
     }
 
-    fn ros_types(&self) -> Option<Vec<ROSTypeName>> {
-        Some(self.ros_types.clone())
+    fn ros_types(&self) -> Option<Vec<ROSTypeString<'static>>> {
+        Some(TEXT_DOCUMENT_TYPES.to_vec())
     }
 
     fn supports_custom(&self) -> bool {
         true
     }
 
-    fn with_config(&mut self, config: ConverterSettings) -> anyhow::Result<(), ConverterError> {
+    fn set_config(
+        &mut self,
+        topic: &str,
+        ros_type: &ROSTypeName,
+        config: ConverterSettings,
+    ) -> anyhow::Result<(), ConverterError> {
+        self.topic = topic.to_owned();
+        self.ros_type = Some(ros_type.to_owned());
         if let Some(field) = config
             .get("field")
             .and_then(|v| v.as_str().map(str::to_owned))
@@ -64,41 +72,46 @@ impl ArchetypeConverter for TextDocument {
 
     async fn convert<'a>(
         &self,
-        topic: &str,
-        ros_type: &ROSTypeName,
         msg: rclrs::DynamicMessageView<'a>,
-    ) -> Option<ArchetypeData> {
-        match ros_type {
-            t if *t == STD_MSGS_STRING => {
-                let text = msg.get_string("data")?;
-                Some(ArchetypeData::new(
-                    topic.to_owned(),
+    ) -> anyhow::Result<ArchetypeData, ConverterError> {
+        match &self.ros_type {
+            Some(t) if *t == STD_MSGS_STRING => {
+                if let Some(text) = msg.get_string("data") {
+                    Ok(ArchetypeData::new(
+                        self.topic.to_owned(),
+                        Box::new(rerun::TextDocument::new(text)),
+                    ))
+                } else {
+                    Err(ConverterError::ConversionError(
+                        self.rerun_name(),
+                        t.to_string(),
+                        anyhow::anyhow!("Missing 'data' field"),
+                    ))
+                }
+            }
+            None => {
+                let text = msg
+                    .iter_by_type(BaseType::String)
+                    .map(|value| match value {
+                        rclrs::Value::Simple(rclrs::SimpleValue::String(value)) => {
+                            value.to_string()
+                        }
+                        _ => rosidl_runtime_rs::String::default().to_string(),
+                    })
+                    .reduce(|mut acc, item| {
+                        acc.push_str(&item);
+                        acc
+                    })
+                    .unwrap_or_default();
+                Ok(ArchetypeData::new(
+                    self.topic.to_owned(),
                     Box::new(rerun::TextDocument::new(text)),
                 ))
             }
-            _ => None,
+            _ => Err(ConverterError::UnsupportedConversion {
+                name: self.rerun_name(),
+                ros_type: self.ros_type.as_ref().map(|t| t.to_string()),
+            }),
         }
-    }
-
-    async fn convert_custom<'a>(
-        &self,
-        topic: &str,
-        msg: rclrs::DynamicMessageView<'a>,
-    ) -> anyhow::Result<ArchetypeData> {
-        let text = msg
-            .iter_by_type(BaseType::String)
-            .map(|value| match value {
-                rclrs::Value::Simple(rclrs::SimpleValue::String(value)) => value.to_string(),
-                _ => rosidl_runtime_rs::String::default().to_string(),
-            })
-            .reduce(|mut acc, item| {
-                acc.push_str(&item);
-                acc
-            })
-            .unwrap_or_default();
-        Ok(ArchetypeData::new(
-            topic.to_owned(),
-            Box::new(rerun::TextDocument::new(text)),
-        ))
     }
 }

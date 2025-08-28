@@ -1,20 +1,26 @@
+use std::fmt::Debug;
+
 use ahash::{HashMap, HashMapExt as _};
 use anyhow::Result;
 use async_trait::async_trait;
+use dyn_clone::DynClone;
 use log::debug;
 use rclrs::{BaseType, DynamicMessageError, Value};
 use rerun::external::re_types_core::ArchetypeName;
 use thiserror::Error;
 
 use crate::{
-    archetypes::{text::TextDocument, ArchetypeData, ROSTypeName},
+    archetypes::{text::TextDocument, ArchetypeData, ROSTypeName, ROSTypeString},
     config::defs::ConverterSettings,
 };
 
 #[derive(Debug, Error)]
 pub enum ConverterError {
-    #[error("No converter found for archetype {0} and ROS type {1}")]
-    NoConverter(ArchetypeName, String),
+    #[error("Unable to convert from archetype {name} to ROS type {}", ros_type.as_deref().unwrap_or("<ANY>"))]
+    UnsupportedConversion {
+        name: ArchetypeName,
+        ros_type: Option<String>,
+    },
 
     #[error("Unable to parse conversion config for archetype {0} and ROS type {1}")]
     ConfigParseError(ArchetypeName, String),
@@ -25,12 +31,12 @@ pub enum ConverterError {
 
 /// Trait for converting ROS messages into Rerun archetypes.
 #[async_trait]
-pub trait ArchetypeConverter {
+pub trait ArchetypeConverter: DynClone + Send + Sync {
     /// Get the name of the Rerun archetype.
     fn rerun_name(&self) -> ArchetypeName;
 
     /// Get the ROS message types that this converter can process.
-    fn ros_types(&self) -> Option<Vec<ROSTypeName>> {
+    fn ros_types(&self) -> Option<Vec<ROSTypeString<'static>>> {
         None
     }
 
@@ -38,33 +44,33 @@ pub trait ArchetypeConverter {
         false
     }
 
-    fn with_config(&mut self, _config: ConverterSettings) -> anyhow::Result<(), ConverterError> {
-        Ok(())
-    }
-
-    /// Convert a specific ROS message type to a Rerun archetype.
+    /// Set the configuration for the converter.
     ///
-    /// Conversions to specific ROS message types are intended
-    /// to never fail, but it is possible for them to return `None`
-    /// if the message does not match the expected format.
-    /// In this case they will be dropped. This may change in the future.
-    async fn convert<'a>(
-        &self,
+    /// This must be called before running `convert`.
+    /// Any converter can be cloned multiple times to handle
+    /// different topics/message types with different settings.
+    ///
+    /// # Errors
+    ///
+    /// Returns `ConfigParseError` if the configuration is invalid.
+    fn set_config(
+        &mut self,
         topic: &str,
         ros_type: &ROSTypeName,
-        msg: rclrs::DynamicMessageView<'a>,
-    ) -> Option<ArchetypeData>;
+        _config: ConverterSettings,
+    ) -> anyhow::Result<(), ConverterError>;
 
-    /// Convert a custom message type to a Rerun archetype.
+    /// Convert a ROS message to a Rerun archetype.
     ///
-    /// Conversions to custom message types can easily fail,
-    /// and errors can be tracked or logged.
-    async fn convert_custom<'a>(
+    /// Each instance of a converter needs to store the ROS topic and type information.
+    /// This means `set_message_info` must be called before `convert`.
+    async fn convert<'a>(
         &self,
-        topic: &str,
         msg: rclrs::DynamicMessageView<'a>,
-    ) -> Result<ArchetypeData>;
+    ) -> Result<ArchetypeData, ConverterError>;
 }
+
+dyn_clone::clone_trait_object!(ArchetypeConverter);
 
 /// Registry for archetype converters.
 ///
@@ -93,7 +99,21 @@ impl ConverterRegistry {
         registry
     }
 
-    pub fn register<T>(&mut self, converter: &T)
+    pub fn find_converter(
+        &self,
+        archetype_name: &ArchetypeName,
+        ros_type: &ROSTypeName,
+    ) -> anyhow::Result<&Box<dyn ArchetypeConverter>, ConverterError> {
+        self.converters
+            .get(&(archetype_name.clone(), Some(ros_type.clone())))
+            .or_else(|| self.converters.get(&(archetype_name.clone(), None)))
+            .ok_or(ConverterError::UnsupportedConversion {
+                name: archetype_name.clone(),
+                ros_type: Some(format!("{ros_type}")),
+            })
+    }
+
+    fn register<T>(&mut self, converter: &T)
     where
         T: ArchetypeConverter + Clone + 'static,
     {
@@ -110,7 +130,7 @@ impl ConverterRegistry {
             for ros_type in ros_types {
                 self.register_converter(
                     archetype_name,
-                    Some(&ros_type.to_string()),
+                    Some(&ros_type),
                     Box::new(converter.clone()) as Box<dyn ArchetypeConverter>,
                 );
             }
@@ -121,17 +141,17 @@ impl ConverterRegistry {
     fn register_converter(
         &mut self,
         archetype_name: ArchetypeName,
-        ros_type: Option<&str>,
+        ros_type: Option<&ROSTypeString<'_>>,
         converter: Box<dyn ArchetypeConverter>,
     ) {
         let mut error_types: HashMap<(ArchetypeName, &str), Vec<DynamicMessageError>> =
             HashMap::new();
-        let parsed_type = ros_type.map(rclrs::MessageTypeName::try_from).transpose();
+        let parsed_type = ros_type.map(ROSTypeName::try_from).transpose();
         match parsed_type {
             Ok(Some(ros_type)) => {
                 debug!("Registered converter for {archetype_name} with ROS type {ros_type}");
                 self.converters
-                    .insert((archetype_name, Some(ROSTypeName(ros_type))), converter);
+                    .insert((archetype_name, Some(ros_type)), converter);
             }
             Ok(None) => {
                 debug!("Registered generic converter for {archetype_name}");
@@ -142,7 +162,7 @@ impl ConverterRegistry {
                     "Failed to register converter for {archetype_name} with ROS type {ros_type:?}: {err}"
                 );
                 if let Some(ros_type) = ros_type {
-                    error_types.insert((archetype_name, ros_type), vec![err]);
+                    error_types.insert((archetype_name, format!("{ros_type}").as_ref()), vec![err]);
                 }
             }
         };

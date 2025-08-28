@@ -3,7 +3,11 @@ use std::{fmt::Display, path::PathBuf};
 use ahash::{HashMap, HashMapExt as _, HashSet, HashSetExt as _};
 use thiserror::Error;
 
-use crate::{channel::ArchetypeSender, config::defs::Config, worker::SubscriptionWorker};
+use crate::{
+    channel::ArchetypeSender,
+    config::{defs::Config, TopicSource},
+    worker::SubscriptionWorker,
+};
 
 pub(crate) enum TaskOutput {
     ArchetypeLog,
@@ -12,12 +16,6 @@ pub(crate) enum TaskOutput {
 type TaskResult = Result<TaskOutput, anyhow::Error>;
 
 type ComponentHandle = tokio::task::JoinHandle<TaskResult>;
-
-#[derive(Debug)]
-enum TopicConfig {
-    TopicAndType(String, String),
-    Topic(String),
-}
 
 #[derive(Debug, Default)]
 struct DBSinkConfig {
@@ -41,7 +39,7 @@ pub enum TopologyConfigError {
 /// and changes will be asynchronously applied.
 #[derive(Debug)]
 pub struct TopologyConfig {
-    topic_subscriptions: HashMap<ComponentID, TopicConfig>,
+    topic_subscriptions: HashMap<ComponentID, TopicSource>,
     grpc_sinks: HashMap<ComponentID, String>,
     db_sink: DBSinkConfig,
     edges: HashMap<ComponentID, Vec<ComponentID>>,
@@ -97,17 +95,7 @@ pub fn parse_topology_config(
 
     for (name, source) in config.topics() {
         let source_id = ComponentID::TopicSubscriber(name.clone());
-        match &source.ros_type {
-            Some(ros_type) => {
-                topic_subscriptions.insert(
-                    source_id,
-                    TopicConfig::TopicAndType(source.topic.clone(), ros_type.clone()),
-                );
-            }
-            None => {
-                topic_subscriptions.insert(source_id, TopicConfig::Topic(source.topic.clone()));
-            }
-        }
+        topic_subscriptions.insert(source_id.clone(), source.clone());
     }
 
     // Set up a single default database sink

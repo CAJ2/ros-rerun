@@ -7,7 +7,7 @@ use parking_lot::Mutex;
 use rclrs::{Executor, Node, Promise, RclrsError};
 use rerun::external::re_log::error_once;
 
-use crate::archetypes::archetype::ConverterRegistry;
+use crate::archetypes::{archetype::ConverterRegistry, ROSTypeName};
 
 /// Encapsulates the ROS2 node
 ///
@@ -22,6 +22,7 @@ impl NodeGraph {
     /// Creates the primary ROS node
     ///
     /// # Errors
+    ///
     /// Returns an error if the node creation fails.
     pub fn new(executor: &Executor) -> Result<Self, RclrsError> {
         let node = executor.create_node("rerun_ros_bridge")?;
@@ -45,6 +46,14 @@ impl NodeGraph {
                     }
                  }
             }
+        }
+    }
+
+    pub fn get_topic_type(&self, topic: &str) -> Option<ROSTypeName> {
+        let msg_topics = self.msg_topics.lock();
+        match msg_topics.get(topic) {
+            Some(ros_type) => ros_type.as_str().try_into().ok(),
+            None => None,
         }
     }
 

@@ -22,6 +22,7 @@ anyhow = "1.0.99"
 async-trait = "0.1.89"
 cdr = "0.2.4"
 clap = { version = "4.5.45", features = ["derive"] }
+dyn-clone = "1.0.20"
 env_logger = { version = "0.11.8", features = ["auto-color", "humantime"] }
 log = "0.4.27"
 parking_lot = "0.12.4"
