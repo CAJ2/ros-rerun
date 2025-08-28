@@ -140,11 +140,11 @@ mod tests {
         assert_eq!(topic.ros_type, None);
         assert_eq!(topic.archetype, "TextLog");
         assert_eq!(
-            topic.settings.get("field"),
+            topic.converter.get("field"),
             Some(&toml::Value::String("example_field".into()))
         );
         assert_eq!(
-            topic.settings.get("another_setting"),
+            topic.converter.get("another_setting"),
             Some(&toml::Value::String("example_value".into()))
         );
     }

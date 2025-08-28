@@ -44,8 +44,7 @@ async fn run() -> anyhow::Result<()> {
     info!("Bridge is running. Press Ctrl+C to exit.");
     tokio::task::block_in_place(|| {
         if let Err(e) = executor.spin(SpinOptions::default()).first_error() {
-            error!("Executor spin error: {:?}", e);
-            std::process::exit(1);
+            error!("Executor spin error: {e:?}");
         }
     });
 

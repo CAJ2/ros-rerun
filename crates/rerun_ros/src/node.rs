@@ -2,10 +2,12 @@ use std::time::Duration;
 
 use ahash::{HashMap, HashMapExt as _};
 use anyhow::Result;
-use log::{debug, error};
+use log::error;
 use parking_lot::Mutex;
 use rclrs::{Executor, Node, Promise, RclrsError};
 use rerun::external::re_log::error_once;
+
+use crate::archetypes::archetype::ConverterRegistry;
 
 /// Encapsulates the ROS2 node
 ///
@@ -24,6 +26,7 @@ impl NodeGraph {
     pub fn new(executor: &Executor) -> Result<Self, RclrsError> {
         let node = executor.create_node("rerun_ros_bridge")?;
         let notifier = node.notify_on_graph_change_with_period(Duration::new(1, 0), || true);
+        let _registry = ConverterRegistry::init();
         let graph = Self {
             node,
             change_notifier: notifier,
@@ -57,7 +60,6 @@ impl NodeGraph {
                 msg_topics.insert(topic.to_string(), types[0].clone());
             }
         }
-        debug!("Message topics: {msg_topics:?}");
         Ok(())
     }
 }

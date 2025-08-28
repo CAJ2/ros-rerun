@@ -1,6 +1,5 @@
-use std::net::{Ipv4Addr, SocketAddr};
+use std::collections::HashMap;
 use std::path::PathBuf;
-use std::{collections::HashMap, net::IpAddr};
 
 use serde::{Deserialize, Serialize};
 
@@ -50,7 +49,7 @@ pub struct Api {
 
 impl Default for Api {
     fn default() -> Self {
-        let address = "127.0.0.1:9888".parse().unwrap();
+        let address = "127.0.0.1:9888".parse().expect("Invalid address");
         Self {
             enabled: true,
             address,
@@ -64,15 +63,15 @@ pub struct TopicSource {
     pub ros_type: Option<String>,
     pub archetype: String,
 
-    /// Additional settings for the worker
+    /// Additional settings for the converter
     #[serde(flatten)]
-    pub settings: TopicSourceSettings,
+    pub converter: ConverterSettings,
 }
 
 #[derive(Deserialize, Serialize, Clone, Default, Debug, PartialEq)]
-pub struct TopicSourceSettings(toml::Table);
+pub struct ConverterSettings(toml::Table);
 
-impl TopicSourceSettings {
+impl ConverterSettings {
     pub fn get(&self, key: &str) -> Option<&toml::Value> {
         self.0.get(key)
     }
