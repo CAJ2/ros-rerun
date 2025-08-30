@@ -30,3 +30,6 @@ venv
 install/
 log/
 build/
+
+# Ignore bridge data directory
+data/
