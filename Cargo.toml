@@ -33,6 +33,7 @@ regex = "1.11.1"
 rerun = { version = "0.24.1", features = ["dataframe", "glam", "image", "log", "sdk"] }
 rosidl_runtime_rs = "0.4.2"
 serde = { version = "1.0.219", features = ["derive"] }
+stream-cancel = "0.8.2"
 tempfile = "3.21.0"
 thiserror = "2.0.16"
 tokio = { version = "1.47.1", default-features = false }
