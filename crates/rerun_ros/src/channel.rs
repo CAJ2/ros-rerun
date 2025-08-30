@@ -1,11 +1,13 @@
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use stream_cancel::Tripwire;
+use tokio::sync::mpsc::{error::SendError, UnboundedReceiver, UnboundedSender};
 
 use crate::archetypes::ArchetypeData;
 
+#[derive(Clone)]
 pub struct ArchetypeSender {
-    sender: UnboundedSender<ArchetypeData>,
+    pub tx: Vec<UnboundedSender<ArchetypeData>>,
 }
 
 pub struct ArchetypeReceiver {
-    receiver: UnboundedReceiver<ArchetypeData>,
+    pub rx: UnboundedReceiver<ArchetypeData>,
 }

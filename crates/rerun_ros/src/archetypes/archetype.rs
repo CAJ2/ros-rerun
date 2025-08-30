@@ -16,7 +16,7 @@ use crate::{
 
 #[derive(Debug, Error)]
 pub enum ConverterError {
-    #[error("Unable to convert from archetype {name} to ROS type {}", ros_type.as_deref().unwrap_or("<ANY>"))]
+    #[error("Unable to convert from ROS type {} to archetype {name}", ros_type.as_deref().unwrap_or("<ANY>"))]
     UnsupportedConversion {
         name: ArchetypeName,
         ros_type: Option<String>,
@@ -57,7 +57,7 @@ pub trait ArchetypeConverter: DynClone + Send + Sync {
         &mut self,
         topic: &str,
         ros_type: &ROSTypeName,
-        _config: ConverterSettings,
+        config: ConverterSettings,
     ) -> anyhow::Result<(), ConverterError>;
 
     /// Convert a ROS message to a Rerun archetype.
@@ -101,14 +101,15 @@ impl ConverterRegistry {
 
     pub fn find_converter(
         &self,
-        archetype_name: &ArchetypeName,
+        archetype_name: ArchetypeName,
         ros_type: &ROSTypeName,
     ) -> anyhow::Result<&Box<dyn ArchetypeConverter>, ConverterError> {
+        let archetype_name = fully_qualified_name(archetype_name);
         self.converters
-            .get(&(archetype_name.clone(), Some(ros_type.clone())))
-            .or_else(|| self.converters.get(&(archetype_name.clone(), None)))
+            .get(&(archetype_name, Some(ros_type.clone())))
+            .or_else(|| self.converters.get(&(archetype_name, None)))
             .ok_or(ConverterError::UnsupportedConversion {
-                name: archetype_name.clone(),
+                name: archetype_name,
                 ros_type: Some(format!("{ros_type}")),
             })
     }
@@ -166,6 +167,14 @@ impl ConverterRegistry {
                 }
             }
         };
+    }
+}
+
+fn fully_qualified_name(name: ArchetypeName) -> ArchetypeName {
+    if name.starts_with("rerun.archetypes.") {
+        ArchetypeName::from(name.as_str())
+    } else {
+        ArchetypeName::new(format!("rerun.archetypes.{name}").as_str())
     }
 }
 

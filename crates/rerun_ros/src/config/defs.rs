@@ -3,6 +3,8 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
+use super::ConfigError;
+
 /// Top level configuration
 ///
 /// Any changes to the configuration will eventually be reflected
@@ -85,6 +87,23 @@ pub struct StreamConfig {
 
 #[derive(Deserialize, Serialize, Clone, Default, Debug, PartialEq, Eq)]
 pub struct DBConfig {
+    pub enabled: Option<bool>,
     pub data_dir: PathBuf,
     pub inputs: Vec<String>,
+}
+
+impl DBConfig {
+    pub fn validate(&self) -> Result<(), ConfigError> {
+        // If the DB config is disabled, skip validation
+        if self.enabled.is_some_and(|e| !e) {
+            return Ok(());
+        }
+        // Check if the data directory is valid
+        if !self.data_dir.is_dir() {
+            return Err(ConfigError::Validation(anyhow::anyhow!(
+                "DB data directory must be a valid directory"
+            )));
+        }
+        Ok(())
+    }
 }

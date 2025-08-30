@@ -1,12 +1,16 @@
-use std::{fmt::Display, path::PathBuf};
+use std::fmt::Display;
 
 use ahash::{HashMap, HashMapExt as _, HashSet, HashSetExt as _};
+use log::{debug, error};
+use stream_cancel::{Trigger, Tripwire};
 use thiserror::Error;
+use tokio::sync::mpsc::unbounded_channel;
 
 use crate::{
-    channel::ArchetypeSender,
-    config::{defs::Config, TopicSource},
-    worker::SubscriptionWorker,
+    archetypes::{archetype::ConverterRegistry, ArchetypeData},
+    channel::{ArchetypeReceiver, ArchetypeSender},
+    config::{defs::Config, DBConfig, StreamConfig, TopicSource},
+    worker::{DBSinkWorker, GRPCSinkWorker, SubscriptionWorker},
 };
 
 pub(crate) enum TaskOutput {
@@ -17,11 +21,6 @@ type TaskResult = Result<TaskOutput, anyhow::Error>;
 
 type ComponentHandle = tokio::task::JoinHandle<TaskResult>;
 
-#[derive(Debug, Default)]
-struct DBSinkConfig {
-    path: PathBuf,
-}
-
 #[derive(Error, Debug)]
 pub enum TopologyConfigError {
     #[error("Duplicate component ID found: {0}")]
@@ -29,6 +28,12 @@ pub enum TopologyConfigError {
 
     #[error("Component {0} cannot define itself as an input")]
     SelfReference(ComponentID),
+
+    #[error("Component {0} failed to initialize")]
+    InitializationError(ComponentID),
+
+    #[error("Component {0} failed to initialize the Rerun SDK: {1}")]
+    RerunInitializationError(ComponentID, #[source] rerun::RecordingStreamError),
 }
 
 /// Configuration describing the flow of data from ROS topics to Rerun.
@@ -41,7 +46,7 @@ pub enum TopologyConfigError {
 pub struct TopologyConfig {
     topic_subscriptions: HashMap<ComponentID, TopicSource>,
     grpc_sinks: HashMap<ComponentID, String>,
-    db_sink: DBSinkConfig,
+    db_sink: DBConfig,
     edges: HashMap<ComponentID, Vec<ComponentID>>,
 }
 
@@ -107,7 +112,7 @@ pub fn parse_topology_config(
     });
     edges.insert(ComponentID::DBSink, db_inputs);
 
-    // Set up gRPC sinks
+    // Setup gRPC sinks
     for (name, stream) in config.streams() {
         let sink_id = ComponentID::GRPCSink(name.clone());
         grpc_sinks.insert(sink_id.clone(), stream.url.clone());
@@ -130,9 +135,7 @@ pub fn parse_topology_config(
     let topo_cfg = TopologyConfig {
         topic_subscriptions,
         grpc_sinks,
-        db_sink: DBSinkConfig {
-            path: config.db.data_dir.clone(),
-        },
+        db_sink: config.db.clone(),
         edges,
     };
     topo_cfg.validate()?;
@@ -141,11 +144,102 @@ pub fn parse_topology_config(
 }
 
 /// The state of a running topology.
+#[derive(Default)]
 pub struct TopologyState {
     topic_subscriptions: HashMap<ComponentID, SubscriptionWorker>,
-    // grpc_sinks: HashMap<ComponentID, GRPCSinkWorker>,
-    // db_sink: DBSinkWorker,
+    grpc_sinks: HashMap<ComponentID, GRPCSinkWorker>,
+    db_sink: Option<DBSinkWorker>,
     edges: HashMap<ComponentID, InputChannel>,
+    shutdown_trigger: Option<Trigger>,
+}
+
+impl TopologyState {
+    pub async fn apply_config(
+        &mut self,
+        node: rclrs::Node,
+        config: &TopologyConfig,
+        registry: &ConverterRegistry,
+    ) -> anyhow::Result<(), TopologyConfigError> {
+        let (shutdown_trigger, shutdown) = Tripwire::new();
+        self.shutdown_trigger = Some(shutdown_trigger);
+        let mut rx_map = HashMap::new();
+        // Apply edges
+        for (id, channel) in config.edges.iter().collect::<Vec<_>>() {
+            let (tx, rx) = unbounded_channel::<ArchetypeData>();
+            self.edges.insert(
+                id.clone(),
+                InputChannel {
+                    components: channel.clone(),
+                    channel: ArchetypeSender { tx: vec![tx] },
+                },
+            );
+            rx_map.insert(id, ArchetypeReceiver { rx });
+        }
+
+        // Apply topic subscriptions
+        for (id, worker) in config.topic_subscriptions.iter().collect::<Vec<_>>() {
+            let connecting_components = self
+                .edges
+                .iter()
+                .filter_map(|(edge_id, input)| {
+                    if input.components.contains(id) {
+                        Some(edge_id.clone())
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>();
+            let input_channel = connecting_components
+                .iter()
+                .map(|comp_id| {
+                    self.edges
+                        .get(comp_id)
+                        .map(|input| input.channel.clone())
+                        .expect("No channel for component")
+                })
+                .collect::<Vec<_>>();
+            // Create a new SubscriptionWorker
+            let subscription_worker = SubscriptionWorker::new(
+                &node,
+                worker,
+                registry,
+                ArchetypeSender {
+                    tx: input_channel
+                        .iter()
+                        .map(|ch| ch.tx[0].clone())
+                        .collect::<Vec<_>>(),
+                },
+            )
+            .map_err(|_err| TopologyConfigError::InitializationError(id.clone()))?;
+            self.topic_subscriptions
+                .insert(id.clone(), subscription_worker);
+        }
+
+        // Apply GRPC sinks
+        for (id, url) in config.grpc_sinks.iter().collect::<Vec<_>>() {
+            let rx_channel = rx_map.remove(id).expect("No channel for component");
+            // Create a new GRPCSinkWorker
+            let grpc_sink_worker = GRPCSinkWorker::new(&StreamConfig {
+                url: url.clone(),
+                inputs: vec![],
+            })
+            .map_err(|_err| TopologyConfigError::InitializationError(id.clone()))?;
+            grpc_sink_worker.run(rx_channel, shutdown.clone());
+            self.grpc_sinks.insert(id.clone(), grpc_sink_worker);
+        }
+
+        // Apply DB sink
+        let rx_channel = rx_map
+            .remove(&ComponentID::DBSink)
+            .expect("No channel for component");
+        let db_sink_worker = DBSinkWorker::new(&config.db_sink)
+            .map_err(|_err| TopologyConfigError::InitializationError(ComponentID::DBSink))?;
+        db_sink_worker.run(rx_channel, shutdown.clone());
+        self.db_sink = Some(db_sink_worker);
+
+        debug!("Applied topology config {config:?}");
+        Ok(())
+    }
 }
 
 struct InputChannel {
@@ -203,7 +297,7 @@ mod tests {
             streams: HashMap::from([(
                 "comp1".into(),
                 config::StreamConfig {
-                    url: "http://localhost:8080".into(),
+                    url: "http://localhost:8080".parse().expect("Invalid address"),
                     inputs: vec![],
                 },
             )]),
@@ -229,14 +323,14 @@ mod tests {
                 (
                     "stream1".into(),
                     config::StreamConfig {
-                        url: "http://localhost:8080".into(),
+                        url: "http://localhost:8080".parse().expect("Invalid address"),
                         inputs: vec!["stream1".into(), "comp1".into()],
                     },
                 ),
                 (
                     "stream2".into(),
                     config::StreamConfig {
-                        url: "http://localhost:8080".into(),
+                        url: "http://localhost:8080".parse().expect("Invalid address"),
                         inputs: vec!["stream1".into(), "comp1".into()],
                     },
                 ),

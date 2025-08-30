@@ -1,13 +1,17 @@
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use ahash::{HashMap, HashMapExt as _};
 use anyhow::Result;
 use log::error;
 use parking_lot::Mutex;
-use rclrs::{Executor, Node, Promise, RclrsError};
+use rclrs::{Executor, Node, Promise};
 use rerun::external::re_log::error_once;
 
-use crate::archetypes::{archetype::ConverterRegistry, ROSTypeName};
+use crate::{
+    archetypes::{archetype::ConverterRegistry, ROSTypeName},
+    config::CONFIG,
+    topology::{parse_topology_config, TopologyState},
+};
 
 /// Encapsulates the ROS2 node
 ///
@@ -16,6 +20,7 @@ pub struct NodeGraph {
     node: Node,
     change_notifier: Promise<()>,
     msg_topics: Mutex<HashMap<String, String>>,
+    registry: Arc<ConverterRegistry>,
 }
 
 impl NodeGraph {
@@ -24,29 +29,48 @@ impl NodeGraph {
     /// # Errors
     ///
     /// Returns an error if the node creation fails.
-    pub fn new(executor: &Executor) -> Result<Self, RclrsError> {
+    pub fn new(executor: &Executor) -> Result<Self> {
         let node = executor.create_node("rerun_ros_bridge")?;
         let notifier = node.notify_on_graph_change_with_period(Duration::new(1, 0), || true);
-        let _registry = ConverterRegistry::init();
+        let registry = Arc::new(ConverterRegistry::init());
         let graph = Self {
-            node,
+            node: node.clone(),
             change_notifier: notifier,
             msg_topics: Mutex::new(HashMap::with_capacity(64)),
+            registry,
         };
 
         Ok(graph)
     }
 
     pub async fn run(mut self) {
-        loop {
-            tokio::select! {
-                 _ = &mut self.change_notifier => {
-                    if let Err(err) = self.refresh_graph() {
-                        error!("Failed to refresh graph: {err}");
-                    }
-                 }
+        let topology_config = match parse_topology_config(&CONFIG.read()) {
+            Ok(config) => config,
+            Err(err) => {
+                error!("Failed to parse topology config: {err}");
+                return;
             }
-        }
+        };
+        let topology = Arc::new(tokio::sync::Mutex::new(TopologyState::default()));
+        let node = self.node.clone();
+        let registry = self.registry.clone();
+        let cloned_topology = topology.clone();
+        let topology_handle = tokio::spawn(async move {
+            let mut topo = cloned_topology.lock().await;
+            topo.apply_config(node, &topology_config, &registry).await;
+        });
+        let main_loop_handle = tokio::spawn(async move {
+            loop {
+                tokio::select! {
+                     _ = &mut self.change_notifier => {
+                        if let Err(err) = self.refresh_graph() {
+                            error!("Failed to refresh graph: {err}");
+                        }
+                     }
+                }
+            }
+        });
+        tokio::join!(main_loop_handle, topology_handle);
     }
 
     pub fn get_topic_type(&self, topic: &str) -> Option<ROSTypeName> {

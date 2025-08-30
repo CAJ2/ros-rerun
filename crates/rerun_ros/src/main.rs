@@ -15,7 +15,7 @@ fn main() -> anyhow::Result<()> {
         .filter_level(options.log_level)
         .init();
 
-    config::load(&options);
+    config::load(&options)?;
 
     let rt = tokio::runtime::Builder::new_multi_thread()
         .enable_all()

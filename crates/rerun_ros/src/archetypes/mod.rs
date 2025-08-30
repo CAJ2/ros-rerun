@@ -1,18 +1,23 @@
-use std::fmt::Display;
+use std::{borrow::Cow, fmt::Display, sync::Arc};
 
-use rerun::AsComponents;
+use rerun::{Archetype, AsComponents};
 
 pub mod archetype;
 pub mod dynamic_message;
 pub mod text;
 
+pub enum LogData {
+    Archetype(ArchetypeData),
+    ArchetypeArray(Vec<ArchetypeData>),
+}
+
 pub struct ArchetypeData {
-    entity_path: String,
-    archetype: Box<dyn AsComponents>,
+    pub entity_path: Arc<str>,
+    pub archetype: Arc<dyn AsComponents + Send + Sync>,
 }
 
 impl ArchetypeData {
-    pub fn new(entity_path: String, archetype: Box<dyn AsComponents>) -> Self {
+    pub fn new(entity_path: Arc<str>, archetype: Arc<dyn AsComponents + Send + Sync>) -> Self {
         Self {
             entity_path,
             archetype,

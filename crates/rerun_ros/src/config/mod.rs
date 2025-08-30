@@ -17,6 +17,12 @@ pub static CONFIG: std::sync::LazyLock<RwLock<Config>> = std::sync::LazyLock::ne
 /// Errors occurring during config loading.
 #[derive(Error, Debug)]
 pub enum ConfigError {
+    #[error("failed to find config file")]
+    NotFound,
+
+    #[error("failed to validate config")]
+    Validation(#[from] anyhow::Error),
+
     #[error("failed to read config file")]
     Io(#[from] io::Error),
 
@@ -33,26 +39,26 @@ pub enum ConfigError {
 /// The search order is as follows:
 /// 1. CLI --config argument file path
 /// 2. config.toml in the current directory
-/// 3. Default values
-pub fn load(options: &Options) {
-    let config_path = options
-        .config
-        .clone()
-        .or_else(|| Some(PathBuf::from("config.toml")));
+pub fn load(options: &Options) -> Result<(), ConfigError> {
+    let config_path = options.config.clone().filter(|p| p.is_file()).or_else(|| {
+        let path = PathBuf::from("config.toml");
+        if path.is_file() {
+            Some(path)
+        } else {
+            None
+        }
+    });
 
-    config_path
-        .as_ref()
-        .and_then(|config_path| load_from_path(config_path).ok())
-        .unwrap_or_else(|| {
+    match config_path {
+        Some(path) => load_from_path(&path).map(|_| {
             let mut config = CONFIG.write();
-            match config_path {
-                Some(config_path) => config.config_paths.push(config_path),
-                None => info!("No config file found, using default configuration"),
-            };
-        });
+            config.config_paths.push(path);
 
-    // Modifications after the `Config` object is created.
-    options.override_config(&mut CONFIG.write());
+            // Modifications after the `Config` object is created.
+            options.override_config(&mut config);
+        }),
+        None => Err(ConfigError::NotFound),
+    }
 }
 
 /// Load configuration file and log errors.
@@ -81,7 +87,15 @@ fn read_config(path: &Path) -> Result<Config, ConfigError> {
     let mut config: Config = toml::from_str(&contents)?;
     config.config_paths.push(path.to_path_buf());
 
+    validate_config(&config)?;
+
     Ok(config)
+}
+
+fn validate_config(config: &Config) -> Result<(), ConfigError> {
+    config.db.validate()?;
+
+    Ok(())
 }
 
 #[cfg(test)]

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use rclrs::BaseType;
 use rerun::{Archetype as _, ArchetypeName};
@@ -24,7 +26,7 @@ pub struct TextDocumentConfig {
 
 #[derive(Clone, Debug, Default)]
 pub struct TextDocument {
-    topic: String,
+    topic: Arc<str>,
     ros_type: Option<ROSTypeName>,
     config: TextDocumentConfig,
 }
@@ -32,7 +34,7 @@ pub struct TextDocument {
 impl TextDocument {
     pub fn new() -> Self {
         Self {
-            topic: String::new(),
+            topic: Arc::from("text"),
             ros_type: None,
             config: Default::default(),
         }
@@ -59,7 +61,7 @@ impl ArchetypeConverter for TextDocument {
         ros_type: &ROSTypeName,
         config: ConverterSettings,
     ) -> anyhow::Result<(), ConverterError> {
-        self.topic = topic.to_owned();
+        self.topic = Arc::from(topic);
         self.ros_type = Some(ros_type.to_owned());
         if let Some(field) = config
             .get("field")
@@ -78,8 +80,8 @@ impl ArchetypeConverter for TextDocument {
             Some(t) if *t == STD_MSGS_STRING => {
                 if let Some(text) = msg.get_string("data") {
                     Ok(ArchetypeData::new(
-                        self.topic.to_owned(),
-                        Box::new(rerun::TextDocument::new(text)),
+                        self.topic.clone(),
+                        Arc::new(rerun::TextDocument::new(text)),
                     ))
                 } else {
                     Err(ConverterError::ConversionError(
@@ -104,8 +106,8 @@ impl ArchetypeConverter for TextDocument {
                     })
                     .unwrap_or_default();
                 Ok(ArchetypeData::new(
-                    self.topic.to_owned(),
-                    Box::new(rerun::TextDocument::new(text)),
+                    self.topic.clone(),
+                    Arc::new(rerun::TextDocument::new(text)),
                 ))
             }
             _ => Err(ConverterError::UnsupportedConversion {
