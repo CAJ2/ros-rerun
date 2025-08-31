@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{collections::BTreeMap, fmt::Display};
 
 use ahash::{HashMap, HashMapExt as _, HashSet, HashSetExt as _};
 use log::{debug, error};
@@ -7,19 +7,11 @@ use thiserror::Error;
 use tokio::sync::mpsc::unbounded_channel;
 
 use crate::{
-    archetypes::{archetype::ConverterRegistry, ArchetypeData},
-    channel::{ArchetypeReceiver, ArchetypeSender},
+    archetypes::archetype::ConverterRegistry,
+    channel::{ArchetypeReceiver, ArchetypeSender, LogData},
     config::{defs::Config, DBConfig, StreamConfig, TopicSource},
     worker::{DBSinkWorker, GRPCSinkWorker, SubscriptionWorker},
 };
-
-pub(crate) enum TaskOutput {
-    ArchetypeLog,
-}
-
-type TaskResult = Result<TaskOutput, anyhow::Error>;
-
-type ComponentHandle = tokio::task::JoinHandle<TaskResult>;
 
 #[derive(Error, Debug)]
 pub enum TopologyConfigError {
@@ -44,14 +36,20 @@ pub enum TopologyConfigError {
 /// and changes will be asynchronously applied.
 #[derive(Debug)]
 pub struct TopologyConfig {
-    topic_subscriptions: HashMap<ComponentID, TopicSource>,
-    grpc_sinks: HashMap<ComponentID, String>,
+    topic_subscriptions: BTreeMap<ComponentID, TopicSource>,
+    grpc_sinks: BTreeMap<ComponentID, String>,
     db_sink: DBConfig,
-    edges: HashMap<ComponentID, Vec<ComponentID>>,
+    edges: BTreeMap<ComponentID, Vec<ComponentID>>,
 }
 
 impl TopologyConfig {
     /// Validate the topology configuration.
+    ///
+    /// # Errors
+    ///
+    /// May return several different errors in `TopologyConfigError`
+    /// if it detects any issues with the topology before attempting to
+    /// apply it.
     pub fn validate(&self) -> anyhow::Result<(), TopologyConfigError> {
         self.check_duplicate_ids()?;
         self.check_invalid_edges()?;
@@ -61,19 +59,19 @@ impl TopologyConfig {
     fn check_duplicate_ids(&self) -> anyhow::Result<(), TopologyConfigError> {
         // Check for duplicate IDs
         let mut seen = HashSet::new();
-        for id in self
-            .topic_subscriptions
+        self.topic_subscriptions
             .keys()
             .chain(self.grpc_sinks.keys())
-            .map(|k| match k {
-                ComponentID::GRPCSink(name) | ComponentID::TopicSubscriber(name) => name,
-                _ => "",
-            })
-        {
-            if !seen.insert(id) {
-                return Err(TopologyConfigError::DuplicateID(id.to_owned()));
-            }
-        }
+            .try_for_each(|k| match k {
+                ComponentID::GRPCSink(name) | ComponentID::TopicSubscriber(name) => {
+                    if !seen.insert(name) {
+                        Err(TopologyConfigError::DuplicateID(name.to_owned()))
+                    } else {
+                        Ok(())
+                    }
+                }
+                ComponentID::DBSink => Ok(()),
+            })?;
         Ok(())
     }
 
@@ -94,9 +92,9 @@ impl TopologyConfig {
 pub fn parse_topology_config(
     config: &Config,
 ) -> anyhow::Result<TopologyConfig, TopologyConfigError> {
-    let mut topic_subscriptions = HashMap::new();
-    let mut grpc_sinks = HashMap::new();
-    let mut edges: HashMap<ComponentID, Vec<ComponentID>> = HashMap::new();
+    let mut topic_subscriptions = BTreeMap::new();
+    let mut grpc_sinks = BTreeMap::new();
+    let mut edges: BTreeMap<ComponentID, Vec<ComponentID>> = BTreeMap::new();
 
     for (name, source) in config.topics() {
         let source_id = ComponentID::TopicSubscriber(name.clone());
@@ -154,6 +152,12 @@ pub struct TopologyState {
 }
 
 impl TopologyState {
+    /// Apply a new topology configuration to the current state.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `TopologyConfigError` if all or part of the configuration
+    /// fails to initialize and start running.
     pub async fn apply_config(
         &mut self,
         node: rclrs::Node,
@@ -164,8 +168,8 @@ impl TopologyState {
         self.shutdown_trigger = Some(shutdown_trigger);
         let mut rx_map = HashMap::new();
         // Apply edges
-        for (id, channel) in config.edges.iter().collect::<Vec<_>>() {
-            let (tx, rx) = unbounded_channel::<ArchetypeData>();
+        for (id, channel) in &config.edges {
+            let (tx, rx) = unbounded_channel::<LogData>();
             self.edges.insert(
                 id.clone(),
                 InputChannel {
@@ -177,7 +181,7 @@ impl TopologyState {
         }
 
         // Apply topic subscriptions
-        for (id, worker) in config.topic_subscriptions.iter().collect::<Vec<_>>() {
+        for (id, worker) in &config.topic_subscriptions {
             let connecting_components = self
                 .edges
                 .iter()
@@ -216,7 +220,7 @@ impl TopologyState {
         }
 
         // Apply GRPC sinks
-        for (id, url) in config.grpc_sinks.iter().collect::<Vec<_>>() {
+        for (id, url) in &config.grpc_sinks {
             let rx_channel = rx_map.remove(id).expect("No channel for component");
             // Create a new GRPCSinkWorker
             let grpc_sink_worker = GRPCSinkWorker::new(&StreamConfig {
@@ -251,7 +255,7 @@ struct InputChannel {
 ///
 /// The topology uses these identifiers to route archetypes
 /// from inputs to sinks.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ComponentID {
     TopicSubscriber(String),
     GRPCSink(String),

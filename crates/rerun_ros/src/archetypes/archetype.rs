@@ -5,12 +5,13 @@ use anyhow::Result;
 use async_trait::async_trait;
 use dyn_clone::DynClone;
 use log::debug;
-use rclrs::{BaseType, DynamicMessageError, Value};
+use rclrs::DynamicMessageError;
 use rerun::external::re_types_core::ArchetypeName;
 use thiserror::Error;
 
 use crate::{
-    archetypes::{text::TextDocument, ArchetypeData, ROSTypeName, ROSTypeString},
+    archetypes::{text::TextDocument, ROSTypeName, ROSTypeString},
+    channel::LogData,
     config::defs::ConverterSettings,
 };
 
@@ -58,16 +59,16 @@ pub trait ArchetypeConverter: DynClone + Send + Sync {
         topic: &str,
         ros_type: &ROSTypeName,
         config: ConverterSettings,
-    ) -> anyhow::Result<(), ConverterError>;
+    ) -> Result<(), ConverterError>;
 
     /// Convert a ROS message to a Rerun archetype.
     ///
     /// Each instance of a converter needs to store the ROS topic and type information.
-    /// This means `set_message_info` must be called before `convert`.
+    /// This means `set_config` must be called before `convert`.
     async fn convert<'a>(
         &self,
         msg: rclrs::DynamicMessageView<'a>,
-    ) -> Result<ArchetypeData, ConverterError>;
+    ) -> Result<LogData, ConverterError>;
 }
 
 dyn_clone::clone_trait_object!(ArchetypeConverter);
@@ -95,23 +96,35 @@ impl ConverterRegistry {
             converters: HashMap::new(),
             error_types: HashMap::new(),
         };
+
+        // All archetype converters are registered here
         registry.register(&TextDocument::new());
+
         registry
     }
 
+    /// Find a converter for the given archetype and ROS type.
     pub fn find_converter(
         &self,
         archetype_name: ArchetypeName,
         ros_type: &ROSTypeName,
-    ) -> anyhow::Result<&Box<dyn ArchetypeConverter>, ConverterError> {
+    ) -> FindConverterResult {
         let archetype_name = fully_qualified_name(archetype_name);
         self.converters
             .get(&(archetype_name, Some(ros_type.clone())))
-            .or_else(|| self.converters.get(&(archetype_name, None)))
-            .ok_or(ConverterError::UnsupportedConversion {
-                name: archetype_name,
-                ros_type: Some(format!("{ros_type}")),
+            .map(|converter| FindConverterResult::ArchetypeROSType(converter.clone()))
+            .or_else(|| {
+                self.converters
+                    .get(&(archetype_name, None))
+                    .map(|converter| FindConverterResult::ArchetypeCustom(converter.clone()))
             })
+            .unwrap_or(FindConverterResult::NotFound(
+                ConverterError::UnsupportedConversion {
+                    name: archetype_name,
+                    ros_type: Some(format!("{ros_type}")),
+                }
+                .into(),
+            ))
     }
 
     fn register<T>(&mut self, converter: &T)
@@ -170,26 +183,19 @@ impl ConverterRegistry {
     }
 }
 
+pub enum FindConverterResult {
+    ArchetypeROSType(Box<dyn ArchetypeConverter>),
+    ArchetypeCustom(Box<dyn ArchetypeConverter>),
+    Components(Box<dyn ArchetypeConverter>),
+    // TODO: Can/should we support always converting ROS message
+    // data even if it doesn't fully fit to Rerun components?
+    NotFound(anyhow::Error),
+}
+
 fn fully_qualified_name(name: ArchetypeName) -> ArchetypeName {
     if name.starts_with("rerun.archetypes.") {
         ArchetypeName::from(name.as_str())
     } else {
         ArchetypeName::new(format!("rerun.archetypes.{name}").as_str())
-    }
-}
-
-pub trait MessageVisitor {
-    fn iter_by_type(&self, value_type: BaseType) -> impl Iterator<Item = Value<'_>>;
-}
-
-impl MessageVisitor for rclrs::DynamicMessageView<'_> {
-    fn iter_by_type(&self, value_type: BaseType) -> impl Iterator<Item = Value<'_>> {
-        self.fields.iter().filter_map(move |field| {
-            if field.base_type != value_type {
-                return None;
-            }
-            let field_value = self.get(&field.name)?;
-            Some(field_value)
-        })
     }
 }

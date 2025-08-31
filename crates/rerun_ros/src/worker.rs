@@ -6,10 +6,10 @@ use stream_cancel::Tripwire;
 
 use crate::{
     archetypes::{
-        archetype::{ArchetypeConverter, ConverterRegistry},
+        archetype::{ArchetypeConverter, ConverterRegistry, FindConverterResult},
         ROSTypeName,
     },
-    channel::{ArchetypeReceiver, ArchetypeSender},
+    channel::{ArchetypeReceiver, ArchetypeSender, LogData},
     config::{DBConfig, StreamConfig, TopicSource},
 };
 
@@ -42,10 +42,17 @@ impl SubscriptionWorker {
             .expect("ROS type auto-discovery is not yet implemented");
         let ros_type: ROSTypeName = valid_ros_type.as_str().try_into()?;
 
-        // Find the converter for the given archetype and ROS type,
-        // clone it, then set the configuration
-        let found_converter = registry.find_converter(archetype_name, &ros_type)?;
-        let mut found_converter = found_converter.clone();
+        // Find the converter for the given archetype and ROS type
+        // falling back to a more generic converter if needed
+        let found_converter = registry.find_converter(archetype_name, &ros_type);
+        let mut found_converter = match found_converter {
+            FindConverterResult::Components(converter)
+            | FindConverterResult::ArchetypeCustom(converter)
+            | FindConverterResult::ArchetypeROSType(converter) => converter,
+            FindConverterResult::NotFound(err) => {
+                return Err(err);
+            }
+        };
         found_converter.set_config(&config.topic, &ros_type, config.converter.clone())?;
         let converter = Arc::new(found_converter);
         let cb_converter = converter.clone();
@@ -116,8 +123,25 @@ async fn run_grpc_sink_worker(
 ) {
     loop {
         tokio::select! {
-            Some(data) = channel.rx.recv() => {
-                rec_stream.log(data.entity_path.as_ref(), &data.archetype.as_serialized_batches());
+            Some(log_data) = channel.rx.recv() => {
+                match log_data {
+                    LogData::Archetype(arch) => {
+                        rec_stream.log(arch.entity_path.as_ref(), &arch.components.as_serialized_batches());
+                    }
+                    LogData::ArchetypeArray(archs) => {
+                        for arch in archs {
+                            rec_stream.log(arch.entity_path.as_ref(), &arch.components.as_serialized_batches());
+                        }
+                    },
+                    LogData::AnyComponents(comps) => {
+                        rec_stream.log(comps.entity_path.as_ref(), &comps.components.as_serialized_batches());
+                    },
+                    LogData::AnyComponentsArray(comps) => {
+                        for comps in comps {
+                            rec_stream.log(comps.entity_path.as_ref(), &comps.components.as_serialized_batches());
+                        }
+                    },
+                }
             }
             _ = &mut shutdown => {
                 debug!("Shutting down gRPC sink worker");
@@ -160,8 +184,25 @@ async fn run_db_sink_worker(
 ) {
     loop {
         tokio::select! {
-            Some(data) = channel.rx.recv() => {
-                rec_stream.log(data.entity_path.as_ref(), &data.archetype.as_serialized_batches());
+            Some(log_data) = channel.rx.recv() => {
+                match log_data {
+                    LogData::Archetype(arch) => {
+                        rec_stream.log(arch.entity_path.as_ref(), &arch.components.as_serialized_batches());
+                    }
+                    LogData::ArchetypeArray(archs) => {
+                        for arch in archs {
+                            rec_stream.log(arch.entity_path.as_ref(), &arch.components.as_serialized_batches());
+                        }
+                    },
+                    LogData::AnyComponents(comps) => {
+                        rec_stream.log(comps.entity_path.as_ref(), &comps.components.as_serialized_batches());
+                    },
+                    LogData::AnyComponentsArray(comps) => {
+                        for comps in comps {
+                            rec_stream.log(comps.entity_path.as_ref(), &comps.components.as_serialized_batches());
+                        }
+                    },
+                }
             }
             _ = &mut shutdown => {
                 debug!("Shutting down DB sink worker");

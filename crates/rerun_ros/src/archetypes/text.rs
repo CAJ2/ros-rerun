@@ -7,10 +7,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     archetypes::{
-        archetype::{ArchetypeConverter, ConverterError, MessageVisitor as _},
-        dynamic_message::DynMessageViewCast as _,
-        ArchetypeData, ROSTypeName, ROSTypeString,
+        archetype::{ArchetypeConverter, ConverterError},
+        dynamic_message::MessageVisitor as _,
+        ROSTypeName, ROSTypeString,
     },
+    channel::{LogComponents, LogData},
     config::defs::ConverterSettings,
 };
 
@@ -75,14 +76,15 @@ impl ArchetypeConverter for TextDocument {
     async fn convert<'a>(
         &self,
         msg: rclrs::DynamicMessageView<'a>,
-    ) -> anyhow::Result<ArchetypeData, ConverterError> {
+    ) -> anyhow::Result<LogData, ConverterError> {
         match &self.ros_type {
             Some(t) if *t == STD_MSGS_STRING => {
                 if let Some(text) = msg.get_string("data") {
-                    Ok(ArchetypeData::new(
-                        self.topic.clone(),
-                        Arc::new(rerun::TextDocument::new(text)),
-                    ))
+                    Ok(LogData::Archetype(LogComponents {
+                        entity_path: self.topic.clone(),
+                        header: None,
+                        components: Arc::new(rerun::TextDocument::new(text)),
+                    }))
                 } else {
                     Err(ConverterError::ConversionError(
                         self.rerun_name(),
@@ -105,10 +107,11 @@ impl ArchetypeConverter for TextDocument {
                         acc
                     })
                     .unwrap_or_default();
-                Ok(ArchetypeData::new(
-                    self.topic.clone(),
-                    Arc::new(rerun::TextDocument::new(text)),
-                ))
+                Ok(LogData::Archetype(LogComponents {
+                    entity_path: self.topic.clone(),
+                    header: None,
+                    components: Arc::new(rerun::TextDocument::new(text)),
+                }))
             }
             _ => Err(ConverterError::UnsupportedConversion {
                 name: self.rerun_name(),

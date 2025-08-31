@@ -1,34 +1,13 @@
-use std::{borrow::Cow, fmt::Display, sync::Arc};
-
-use rerun::{Archetype, AsComponents};
+use std::fmt::Display;
 
 pub mod archetype;
 pub mod dynamic_message;
 pub mod text;
 
-pub enum LogData {
-    Archetype(ArchetypeData),
-    ArchetypeArray(Vec<ArchetypeData>),
-}
-
-pub struct ArchetypeData {
-    pub entity_path: Arc<str>,
-    pub archetype: Arc<dyn AsComponents + Send + Sync>,
-}
-
-impl ArchetypeData {
-    pub fn new(entity_path: Arc<str>, archetype: Arc<dyn AsComponents + Send + Sync>) -> Self {
-        Self {
-            entity_path,
-            archetype,
-        }
-    }
-}
-
 /// Represents a runtime-checked ROS message type.
 ///
 /// This ensures that the ROS type definition is available.
-/// It is just a wrapper around the `rclrs::MessageTypeName` type,
+/// It is a wrapper around the `rclrs::MessageTypeName` type,
 /// but with some other goodies like Hash and conversion/comparison with
 /// the unchecked `ROSTypeString` type.
 #[derive(Debug, Clone, PartialEq, Eq)]
