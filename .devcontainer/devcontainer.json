@@ -1,8 +1,8 @@
 {
-    "name": "rerun-ros",
+    "name": "ros-rerun",
     "build": {
         "dockerfile": "Dockerfile",
-        "context": "..",
+        "context": ".."
     },
     "customizations": {
         "vscode": {
