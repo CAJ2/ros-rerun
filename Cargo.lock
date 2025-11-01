@@ -7924,33 +7924,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rerun_ros"
-version = "0.1.0"
-dependencies = [
- "ahash",
- "ament_rs 0.3.0",
- "anyhow",
- "async-trait",
- "cdr",
- "clap",
- "dyn-clone",
- "env_logger",
- "log",
- "parking_lot",
- "rclrs",
- "regex",
- "rerun",
- "rosidl_runtime_rs",
- "serde",
- "stream-cancel",
- "tempfile",
- "thiserror 2.0.16",
- "tokio",
- "toml 0.9.5",
- "widestring",
-]
-
-[[package]]
 name = "resvg"
 version = "0.45.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8038,6 +8011,33 @@ dependencies = [
  "serde",
  "serde_derive",
  "unicode-ident",
+]
+
+[[package]]
+name = "ros_rerun"
+version = "0.1.0"
+dependencies = [
+ "ahash",
+ "ament_rs 0.3.0",
+ "anyhow",
+ "async-trait",
+ "cdr",
+ "clap",
+ "dyn-clone",
+ "env_logger",
+ "log",
+ "parking_lot",
+ "rclrs",
+ "regex",
+ "rerun",
+ "rosidl_runtime_rs",
+ "serde",
+ "stream-cancel",
+ "tempfile",
+ "thiserror 2.0.16",
+ "tokio",
+ "toml 0.9.5",
+ "widestring",
 ]
 
 [[package]]
@@ -10888,7 +10888,3 @@ dependencies = [
  "syn",
  "winnow",
 ]
-
-[[patch.unused]]
-name = "rerun_ros"
-version = "0.1.0"

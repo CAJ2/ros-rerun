@@ -1,6 +1,6 @@
 use log::{error, info};
 use rclrs::{CreateBasicExecutor as _, InitOptions, RclrsErrorFilter as _, SpinOptions};
-use rerun_ros::{
+use ros_rerun::{
     cli::{Options, Subcommands},
     config,
     node::NodeGraph,

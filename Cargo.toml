@@ -1,18 +1,18 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/rerun_ros",
+    "crates/ros_rerun",
 ]
 
 [workspace.package]
-authors = ["rerun.io <opensource@rerun.io>"]
+authors = ["rerun.io <opensource@rerun.io>", "Christian Johansen <johansen.christian.a@gmail.com>"]
 edition = "2021"
-homepage = "https://github.com/rerun-io/rerun-ros"
+homepage = "https://github.com/CAJ2/ros-rerun"
 include = ["LICENSE-APACHE", "LICENSE-MIT", "**/*.rs", "Cargo.toml"]
-keywords = []                                                        # TODO: fill in if you plan on publishing the crate
+keywords = []
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/rerun-io/rerun-ros"
-rust-version = "1.85"
+repository = "https://github.com/CAJ2/ros-rerun"
+rust-version = "1.90"
 
 
 [workspace.dependencies]

@@ -1,9 +1,10 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-    <name>rerun_ros</name>
+    <name>ros_rerun</name>
     <version>0.1.0</version>
-    <description>rerun-ros</description>
+    <description>ros_rerun</description>
+    <maintainer email="johansen.christian.a@gmail.com">Christian Johansen</maintainer>
     <maintainer email="opensource@rerun.io">rerun.io</maintainer>
     <license>Apache License 2.0</license>
     <license>MIT</license>
