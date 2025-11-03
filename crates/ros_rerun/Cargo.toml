@@ -1,13 +1,16 @@
 [package]
 # cargo-ament-build throws an error when using .workspace = true
-authors = ["rerun.io <opensource@rerun.io>", "Christian Johansen <johansen.christian.a@gmail.com>"]
+authors = [
+    "rerun.io <opensource@rerun.io>",
+    "Christian Johansen <johansen.christian.a@gmail.com>",
+]
 edition = "2021"
 homepage = "https://github.com/CAJ2/ros-rerun"
 include = ["LICENSE-APACHE", "LICENSE-MIT", "**/*.rs", "Cargo.toml"]
-keywords = []                                                        # TODO: fill in if you plan on publishing the crate
+keywords = [] # TODO: fill in if you plan on publishing the crate
 license = "MIT OR Apache-2.0"
 name = "ros_rerun"
-publish = false                                                      # TODO: set to `true` if you plan on publishing the crate
+publish = false # TODO: set to `true` if you plan on publishing the crate
 version = "0.1.0"
 readme = "README.md"
 repository = "https://github.com/CAJ2/ros-rerun"

@@ -26,7 +26,7 @@ dyn-clone = "1.0.20"
 env_logger = { version = "0.11.8", features = ["auto-color", "humantime"] }
 log = "0.4.27"
 parking_lot = "0.12.4"
-rclrs = { git = "https://github.com/luca-della-vedova/ros2_rust.git", branch = "dynamic_messages", features = [
+rclrs = { git = "https://github.com/CAJ2/ros2_rust.git", branch = "dynamic_messages", features = [
     "dyn_msg",
 ] }
 regex = "1.11.1"

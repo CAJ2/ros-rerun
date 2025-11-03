@@ -23,7 +23,9 @@ scripts = ["install/setup.bash", "install/local_setup.bash"]
 
 [activation.env]
 ROS_DISTRO = "jazzy"
-# On macOS, use system libiconv for cargo
+
+[target.osx-arm64.activation.env]
+# On macOS, use system libiconv for cargo, otherwise it may segfault
 DYLD_LIBRARY_PATH = "/usr/lib:$DYLD_LIBRARY_PATH"
 
 [dependencies]
@@ -31,6 +33,8 @@ clangdev = "19.1.7.*"
 colcon-common-extensions = ">=0.3.0,<0.4"
 ros-jazzy-rcl = ">=9.2.6,<10"
 ros-jazzy-builtin-interfaces = ">=2.0.2,<3"
+ros-jazzy-example-interfaces = ">=0.12.0,<0.13"
+ros-jazzy-test-msgs = ">=2.0.2,<3"
 ros-jazzy-rcl-interfaces = ">=2.0.2,<3"
 ros-jazzy-rosgraph-msgs = ">=2.0.2,<3"
 ros-jazzy-rosidl-default-generators = ">=1.6.0,<2"
