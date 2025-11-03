@@ -93,6 +93,10 @@ pub struct DBConfig {
 }
 
 impl DBConfig {
+    /// Validate the DB configuration
+    ///
+    /// # Errors
+    /// Returns `ConfigError::Validation` if the DB configuration is invalid.
     pub fn validate(&self) -> Result<(), ConfigError> {
         // If the DB config is disabled, skip validation
         if self.enabled.is_some_and(|e| !e) {

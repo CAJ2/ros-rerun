@@ -25,7 +25,7 @@ pub enum TopologyConfigError {
     InitializationError(ComponentID),
 
     #[error("Component {0} failed to initialize the Rerun SDK: {1}")]
-    RerunInitializationError(ComponentID, #[source] rerun::RecordingStreamError),
+    RerunInitializationError(ComponentID, #[source] Box<rerun::RecordingStreamError>),
 }
 
 /// Configuration describing the flow of data from ROS topics to Rerun.
@@ -210,7 +210,7 @@ impl TopologyState {
                 ArchetypeSender {
                     tx: input_channel
                         .iter()
-                        .map(|ch| ch.tx[0].clone())
+                        .map(|ch| ch.tx.first().expect("No tx channel").clone())
                         .collect::<Vec<_>>(),
                 },
             )

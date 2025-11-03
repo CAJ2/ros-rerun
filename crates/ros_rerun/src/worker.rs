@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
 use log::{debug, error};
 use rclrs::DynamicSubscription;
@@ -9,14 +9,14 @@ use crate::{
         archetype::{ArchetypeConverter, ConverterRegistry, FindConverterResult},
         ROSTypeName,
     },
-    channel::{ArchetypeReceiver, ArchetypeSender, LogData},
+    channel::{ArchetypeReceiver, ArchetypeSender, LogComponents, LogData},
     config::{DBConfig, StreamConfig, TopicSource},
 };
 
 pub struct SubscriptionWorker {
     topic: String,
-    subscription: DynamicSubscription,
-    converter: Arc<Box<dyn ArchetypeConverter>>,
+    _subscription: DynamicSubscription,
+    _converter: Arc<Box<dyn ArchetypeConverter>>,
 }
 
 impl SubscriptionWorker {
@@ -81,9 +81,13 @@ impl SubscriptionWorker {
 
         Ok(Self {
             topic: config.topic.clone(),
-            subscription: sub,
-            converter,
+            _subscription: sub,
+            _converter: converter,
         })
+    }
+
+    pub fn topic(&self) -> &str {
+        &self.topic
     }
 }
 
@@ -93,6 +97,10 @@ pub struct GRPCSinkWorker {
 }
 
 impl GRPCSinkWorker {
+    /// Create a worker that sends data to a gRPC Rerun server.
+    ///
+    /// # Errors
+    /// Returns an error if the connection to the gRPC server cannot be established.
     pub fn new(config: &StreamConfig) -> anyhow::Result<Self> {
         let rec = rerun::RecordingStreamBuilder::new("rerun_ros")
             .connect_grpc_opts(config.url.clone(), rerun::default_flush_timeout())?;
@@ -116,6 +124,15 @@ impl Drop for GRPCSinkWorker {
     }
 }
 
+fn send_log_comps(rec_stream: &rerun::RecordingStream, data: &LogComponents) {
+    if let Err(err) = rec_stream.log(
+        data.entity_path.as_ref(),
+        &data.components.as_serialized_batches(),
+    ) {
+        error!("Failed to send log components: {err}");
+    }
+}
+
 async fn run_grpc_sink_worker(
     rec_stream: rerun::RecordingStream,
     mut channel: ArchetypeReceiver,
@@ -126,19 +143,19 @@ async fn run_grpc_sink_worker(
             Some(log_data) = channel.rx.recv() => {
                 match log_data {
                     LogData::Archetype(arch) => {
-                        rec_stream.log(arch.entity_path.as_ref(), &arch.components.as_serialized_batches());
+                        send_log_comps(&rec_stream, &arch);
                     }
                     LogData::ArchetypeArray(archs) => {
                         for arch in archs {
-                            rec_stream.log(arch.entity_path.as_ref(), &arch.components.as_serialized_batches());
+                            send_log_comps(&rec_stream, &arch);
                         }
                     },
                     LogData::AnyComponents(comps) => {
-                        rec_stream.log(comps.entity_path.as_ref(), &comps.components.as_serialized_batches());
+                        send_log_comps(&rec_stream, &comps);
                     },
-                    LogData::AnyComponentsArray(comps) => {
-                        for comps in comps {
-                            rec_stream.log(comps.entity_path.as_ref(), &comps.components.as_serialized_batches());
+                    LogData::AnyComponentsArray(comps_arr) => {
+                        for comps in comps_arr {
+                            send_log_comps(&rec_stream, &comps);
                         }
                     },
                 }
@@ -152,23 +169,23 @@ async fn run_grpc_sink_worker(
 }
 
 pub struct DBSinkWorker {
-    file: PathBuf,
     rec: rerun::RecordingStream,
 }
 
 impl DBSinkWorker {
+    /// Create a worker that saves data to files in a local directory
+    ///
+    /// # Errors
+    /// Returns an error if the recording stream cannot be created.
     pub fn new(config: &DBConfig) -> anyhow::Result<Self> {
         let store_id = rerun::StoreId::random(rerun::StoreKind::Recording);
         let file_name = format!("{store_id}.rrd");
         let recording_file = config.data_dir.clone().join(file_name);
-        let rec = rerun::RecordingStreamBuilder::new("rerun_ros")
+        let rec = rerun::RecordingStreamBuilder::new("ros_rerun")
             .store_id(store_id)
             .save(recording_file.clone())?;
 
-        Ok(Self {
-            file: recording_file,
-            rec,
-        })
+        Ok(Self { rec })
     }
 
     pub fn run(&self, channel: ArchetypeReceiver, shutdown: Tripwire) {
@@ -187,19 +204,19 @@ async fn run_db_sink_worker(
             Some(log_data) = channel.rx.recv() => {
                 match log_data {
                     LogData::Archetype(arch) => {
-                        rec_stream.log(arch.entity_path.as_ref(), &arch.components.as_serialized_batches());
+                        send_log_comps(&rec_stream, &arch);
                     }
                     LogData::ArchetypeArray(archs) => {
                         for arch in archs {
-                            rec_stream.log(arch.entity_path.as_ref(), &arch.components.as_serialized_batches());
+                            send_log_comps(&rec_stream, &arch);
                         }
                     },
                     LogData::AnyComponents(comps) => {
-                        rec_stream.log(comps.entity_path.as_ref(), &comps.components.as_serialized_batches());
+                        send_log_comps(&rec_stream, &comps);
                     },
                     LogData::AnyComponentsArray(comps) => {
                         for comps in comps {
-                            rec_stream.log(comps.entity_path.as_ref(), &comps.components.as_serialized_batches());
+                            send_log_comps(&rec_stream, &comps);
                         }
                     },
                 }

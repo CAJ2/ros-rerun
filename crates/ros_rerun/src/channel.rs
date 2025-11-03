@@ -20,9 +20,9 @@ pub struct LogComponents {
 
 /// Header information for log messages
 ///
-/// Maps to the ROS std_msgs/Header definition
+/// Maps to the ROS `std_msgs/Header` definition
 /// and used to set the logged timepoint and
-/// modify the entity_path for transforms.
+/// modify the `entity_path` for transforms.
 #[derive(Default)]
 pub struct LogHeader {
     pub frame: Option<String>,

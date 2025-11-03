@@ -1,5 +1,5 @@
 use anyhow::Result;
-use log::{error, info};
+use log::error;
 use parking_lot::RwLock;
 use std::path::{Path, PathBuf};
 use std::{fs, io};
@@ -39,6 +39,9 @@ pub enum ConfigError {
 /// The search order is as follows:
 /// 1. CLI --config argument file path
 /// 2. config.toml in the current directory
+///
+/// # Errors
+/// Returns an error if no configuration file is found, loading fails, or validation fails.
 pub fn load(options: &Options) -> Result<(), ConfigError> {
     let config_path = options.config.clone().filter(|p| p.is_file()).or_else(|| {
         let path = PathBuf::from("config.toml");

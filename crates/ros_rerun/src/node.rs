@@ -57,7 +57,9 @@ impl NodeGraph {
         let cloned_topology = topology.clone();
         let topology_handle = tokio::spawn(async move {
             let mut topo = cloned_topology.lock().await;
-            topo.apply_config(node, &topology_config, &registry).await;
+            if let Err(err) = topo.apply_config(node, &topology_config, &registry).await {
+                error!("Failed to apply topology config: {err}");
+            }
         });
         let main_loop_handle = tokio::spawn(async move {
             loop {
@@ -70,7 +72,9 @@ impl NodeGraph {
                 }
             }
         });
-        tokio::join!(main_loop_handle, topology_handle);
+        if let Err(err) = tokio::join!(main_loop_handle, topology_handle).0 {
+            error!("Node graph main loop failed: {err}");
+        }
     }
 
     pub fn get_topic_type(&self, topic: &str) -> Option<ROSTypeName> {
@@ -90,7 +94,7 @@ impl NodeGraph {
             if types.len() > 1 {
                 error_once!("Topic {topic} has multiple types, ignoring: {types:?}");
             } else {
-                msg_topics.insert(topic.to_string(), types[0].clone());
+                msg_topics.insert(topic.clone(), types.first().expect("No type").clone());
             }
         }
         Ok(())

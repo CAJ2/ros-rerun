@@ -34,8 +34,14 @@ impl Options {
     pub fn override_config(&self, config: &mut Config) {
         // Override listen address if specified
         if let Some(listen) = &self.listen {
-            config.api.address = listen.clone();
+            config.api.address = *listen;
         }
+    }
+}
+
+impl Default for Options {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

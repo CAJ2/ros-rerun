@@ -144,7 +144,7 @@ impl ConverterRegistry {
             for ros_type in ros_types {
                 self.register_converter(
                     archetype_name,
-                    Some(&ros_type),
+                    Some(ros_type),
                     Box::new(converter.clone()) as Box<dyn ArchetypeConverter>,
                 );
             }
@@ -158,8 +158,6 @@ impl ConverterRegistry {
         ros_type: Option<&ROSTypeString<'_>>,
         converter: Box<dyn ArchetypeConverter>,
     ) {
-        let mut error_types: HashMap<(ArchetypeName, &str), Vec<DynamicMessageError>> =
-            HashMap::new();
         let parsed_type = ros_type.map(ROSTypeName::try_from).transpose();
         match parsed_type {
             Ok(Some(ros_type)) => {
@@ -176,7 +174,8 @@ impl ConverterRegistry {
                     "Failed to register converter for {archetype_name} with ROS type {ros_type:?}: {err}"
                 );
                 if let Some(ros_type) = ros_type {
-                    error_types.insert((archetype_name, format!("{ros_type}").as_ref()), vec![err]);
+                    self.error_types
+                        .insert((archetype_name, format!("{ros_type}")), vec![err]);
                 }
             }
         };

@@ -1,7 +1,7 @@
 use crate::ros_introspection::Type;
 use anyhow::Result;
 use regex::Regex;
-use std::str::FromStr;
+use std::str::FromStr as _;
 
 #[derive(Debug, Clone)]
 pub struct Field {
