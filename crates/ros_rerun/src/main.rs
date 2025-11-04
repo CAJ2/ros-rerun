@@ -36,7 +36,7 @@ async fn run() -> anyhow::Result<()> {
 
     let context = rclrs::Context::new(env::args(), InitOptions::new())?;
     let mut executor = context.create_basic_executor();
-    let graph = NodeGraph::new(&executor)?;
+    let graph = NodeGraph::new(&executor, "ros_rerun_bridge")?;
     tokio::spawn(async move {
         graph.run().await;
     });
