@@ -39,13 +39,13 @@ impl Type {
             if let Some(what) = msg_datatype_regex.captures(name) {
                 let pkg_name = what
                     .get(1)
-                    .ok_or(anyhow!("Could not extract message name from {}", name))?
+                    .ok_or(anyhow!("Could not extract message name from {name}"))?
                     .as_str()
                     .to_owned();
 
                 let msg_name = what
                     .get(3)
-                    .ok_or(anyhow!("Could not extract message name from {}", name))?
+                    .ok_or(anyhow!("Could not extract message name from {name}"))?
                     .as_str()
                     .to_owned();
                 (pkg_name, msg_name, id)

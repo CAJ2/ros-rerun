@@ -17,11 +17,11 @@ rust-version = "1.90"
 
 [workspace.dependencies]
 ahash = "0.8.12"
-ament_rs = "0.3.0"
-anyhow = "1.0.99"
+ament_rs = "0.3"
+anyhow = "1"
 async-trait = "0.1.89"
 cdr = "0.2.4"
-clap = { version = "4.5.45", features = ["derive"] }
+clap = { version = "4.5.51", features = ["derive"] }
 dyn-clone = "1.0.20"
 env_logger = { version = "0.11.8", features = ["auto-color", "humantime"] }
 log = "0.4.27"
@@ -29,15 +29,15 @@ parking_lot = "0.12.4"
 rclrs = { git = "https://github.com/CAJ2/ros2_rust.git", branch = "dynamic_messages", features = [
     "dyn_msg",
 ] }
-regex = "1.11.1"
-rerun = { version = "0.24.1", features = ["dataframe", "glam", "image", "log", "sdk"] }
-rosidl_runtime_rs = "0.4.2"
+regex = "1.12.2"
+rerun = { version = "0.26.2", features = ["dataframe", "glam", "image", "log", "sdk"] }
+rosidl_runtime_rs = "0.5.0"
 serde = { version = "1.0.219", features = ["derive"] }
 stream-cancel = "0.8.2"
 tempfile = "3.21.0"
-thiserror = "2.0.16"
-tokio = { version = "1.47.1", default-features = false }
-toml = "0.9.5"
+thiserror = "1"
+tokio = { version = "1.48.0", default-features = false }
+toml = "0.8.23"
 widestring = "1.2.0"
 
 

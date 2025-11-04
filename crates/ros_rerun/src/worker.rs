@@ -102,8 +102,8 @@ impl GRPCSinkWorker {
     /// # Errors
     /// Returns an error if the connection to the gRPC server cannot be established.
     pub fn new(config: &StreamConfig) -> anyhow::Result<Self> {
-        let rec = rerun::RecordingStreamBuilder::new("rerun_ros")
-            .connect_grpc_opts(config.url.clone(), rerun::default_flush_timeout())?;
+        let rec = rerun::RecordingStreamBuilder::new("ros_rerun")
+            .connect_grpc_opts(config.url.clone())?;
 
         Ok(Self {
             address: config.url.clone(),
@@ -120,7 +120,9 @@ impl GRPCSinkWorker {
 impl Drop for GRPCSinkWorker {
     fn drop(&mut self) {
         debug!("Shutting down gRPC sink to {}", self.address);
-        self.rec.flush_blocking();
+        if let Err(err) = self.rec.flush_blocking() {
+            error!("Failed to flush gRPC recording stream: {err}");
+        }
     }
 }
 
@@ -178,11 +180,11 @@ impl DBSinkWorker {
     /// # Errors
     /// Returns an error if the recording stream cannot be created.
     pub fn new(config: &DBConfig) -> anyhow::Result<Self> {
-        let store_id = rerun::StoreId::random(rerun::StoreKind::Recording);
-        let file_name = format!("{store_id}.rrd");
+        let store_id = rerun::StoreId::random(rerun::StoreKind::Recording, "ros_rerun");
+        let file_name = format!("{}_{}.rrd", "ros_rerun", store_id.recording_id().as_str());
         let recording_file = config.data_dir.clone().join(file_name);
         let rec = rerun::RecordingStreamBuilder::new("ros_rerun")
-            .store_id(store_id)
+            .recording_id(store_id.recording_id().clone())
             .save(recording_file.clone())?;
 
         Ok(Self { rec })

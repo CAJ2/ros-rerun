@@ -30,7 +30,7 @@ impl NodeGraph {
     ///
     /// Returns an error if the node creation fails.
     pub fn new(executor: &Executor) -> Result<Self> {
-        let node = executor.create_node("rerun_ros_bridge")?;
+        let node = executor.create_node("ros_rerun_bridge")?;
         let notifier = node.notify_on_graph_change_with_period(Duration::new(1, 0), || true);
         let registry = Arc::new(ConverterRegistry::init());
         let graph = Self {
