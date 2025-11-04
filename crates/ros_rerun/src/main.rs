@@ -32,7 +32,7 @@ fn main() -> anyhow::Result<()> {
 }
 
 async fn run() -> anyhow::Result<()> {
-    info!("Starting Rerun ROS bridge...");
+    info!("Starting ROS <-> Rerun bridge...");
 
     let context = rclrs::Context::new(env::args(), InitOptions::new())?;
     let mut executor = context.create_basic_executor();

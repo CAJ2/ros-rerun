@@ -287,6 +287,31 @@ mod tests {
     }
 
     #[test]
+    fn valid_topology() {
+        let cfg = config::Config {
+            topics: HashMap::from([(
+                "comp1".into(),
+                config::TopicSource {
+                    topic: "example_topic".into(),
+                    ros_type: Some("std_msgs/String".into()),
+                    archetype: "TextLog".into(),
+                    ..Default::default()
+                },
+            )]),
+            streams: HashMap::from([(
+                "stream1".into(),
+                config::StreamConfig {
+                    url: "http://localhost:8080".parse().expect("Invalid address"),
+                    inputs: vec![],
+                },
+            )]),
+            ..Default::default()
+        };
+        let topology = parse_topology_config(&cfg);
+        assert!(topology.is_ok());
+    }
+
+    #[test]
     fn invalid_duplicates() {
         let cfg = config::Config {
             topics: HashMap::from([(
