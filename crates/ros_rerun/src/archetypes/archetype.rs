@@ -93,7 +93,7 @@ pub struct ConverterBuilder<'a> {
 impl<'a> ConverterBuilder<'a> {
     pub fn new_with_registry(registry: &'a ConverterRegistry) -> Self {
         Self {
-            registry: registry,
+            registry,
             topic: String::new(),
             archetype: None,
             ros_type: None,
@@ -121,6 +121,10 @@ impl<'a> ConverterBuilder<'a> {
         self
     }
 
+    /// Builds the converter.
+    ///
+    /// # Errors
+    /// Returns `ConverterError::UnsupportedConversion` if no suitable converter is found.
     pub fn build(self) -> Result<Box<dyn ArchetypeConverter>, ConverterError> {
         let converter = self
             .registry
@@ -150,7 +154,7 @@ impl<'a> ConverterBuilder<'a> {
 /// by each `ArchetypeConverter`.
 pub struct ConverterRegistry {
     /// All registered converters keyed by the archetype and optionally the ROS type
-    /// If the converter supports a general conversion, it will be registered with (ArchetypeName, None)
+    /// If the converter supports a general conversion, it will be registered with (`ArchetypeName`, None)
     converters: HashMap<(ArchetypeName, Option<ROSTypeName>), Box<dyn ConverterConfigurable>>,
     /// Tracks converters by ROS type when the archetype needs to be inferred
     /// This essentially defines the default archetype for a given ROS type
@@ -201,11 +205,11 @@ impl ConverterRegistry {
     ) -> FindConverterResult {
         let archetype_name = fully_qualified_name(archetype_name);
         self.converters
-            .get(&(archetype_name.clone(), Some(ros_type.clone())))
+            .get(&(archetype_name, Some(ros_type.clone())))
             .map(|converter| Ok(FoundConverter::ArchetypeROSType(converter.clone())))
             .or_else(|| {
                 self.converters
-                    .get(&(archetype_name.clone(), None))
+                    .get(&(archetype_name, None))
                     .map(|converter| Ok(FoundConverter::ArchetypeCustom(converter.clone())))
             })
             .unwrap_or(Err(ConverterError::UnsupportedConversion {
@@ -220,7 +224,7 @@ impl ConverterRegistry {
     ) -> FindConverterResult {
         let archetype_name = fully_qualified_name(archetype_name);
         self.converters
-            .get(&(archetype_name.clone(), None))
+            .get(&(archetype_name, None))
             .map(|converter| Ok(FoundConverter::ArchetypeCustom(converter.clone())))
             .unwrap_or(Err(ConverterError::UnsupportedConversion {
                 name: archetype_name,
