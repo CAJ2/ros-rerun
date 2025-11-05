@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     archetypes::{
-        archetype::{ArchetypeConverter, ConverterError},
+        archetype::{ArchetypeConverter, ConverterConfigurable, ConverterError},
         dynamic_message::MessageVisitor as _,
         ROSTypeName, ROSTypeString,
     },
@@ -32,13 +32,23 @@ pub struct TextDocument {
     config: TextDocumentConfig,
 }
 
-impl TextDocument {
-    pub fn new() -> Self {
-        Self {
-            topic: Arc::from("text"),
-            ros_type: None,
-            config: Default::default(),
+impl ConverterConfigurable for TextDocument {
+    fn set_topic(&mut self, topic: &str) {
+        self.topic = Arc::from(topic);
+    }
+
+    fn set_ros_type(&mut self, ros_type: Option<ROSTypeName>) {
+        self.ros_type = ros_type;
+    }
+
+    fn set_config(&mut self, config: ConverterSettings) -> anyhow::Result<(), ConverterError> {
+        if let Some(field) = config
+            .get("field")
+            .and_then(|v| v.as_str().map(str::to_owned))
+        {
+            self.config.field = Some(field);
         }
+        Ok(())
     }
 }
 
@@ -54,23 +64,6 @@ impl ArchetypeConverter for TextDocument {
 
     fn supports_custom(&self) -> bool {
         true
-    }
-
-    fn set_config(
-        &mut self,
-        topic: &str,
-        ros_type: &ROSTypeName,
-        config: ConverterSettings,
-    ) -> anyhow::Result<(), ConverterError> {
-        self.topic = Arc::from(topic);
-        self.ros_type = Some(ros_type.to_owned());
-        if let Some(field) = config
-            .get("field")
-            .and_then(|v| v.as_str().map(str::to_owned))
-        {
-            self.config.field = Some(field);
-        }
-        Ok(())
     }
 
     async fn convert<'a>(

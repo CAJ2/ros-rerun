@@ -6,7 +6,7 @@ use stream_cancel::Tripwire;
 
 use crate::{
     archetypes::{
-        archetype::{ArchetypeConverter, ConverterRegistry, FindConverterResult},
+        archetype::{ArchetypeConverter, ConverterBuilder, ConverterRegistry},
         ROSTypeName,
     },
     channel::{ArchetypeReceiver, ArchetypeSender, LogComponents, LogData},
@@ -42,19 +42,13 @@ impl SubscriptionWorker {
             .expect("ROS type auto-discovery is not yet implemented");
         let ros_type: ROSTypeName = valid_ros_type.as_str().try_into()?;
 
-        // Find the converter for the given archetype and ROS type
-        // falling back to a more generic converter if needed
-        let found_converter = registry.find_converter(archetype_name, &ros_type);
-        let mut found_converter = match found_converter {
-            FindConverterResult::Components(converter)
-            | FindConverterResult::ArchetypeCustom(converter)
-            | FindConverterResult::ArchetypeROSType(converter) => converter,
-            FindConverterResult::NotFound(err) => {
-                return Err(err);
-            }
-        };
-        found_converter.set_config(&config.topic, &ros_type, config.converter.clone())?;
-        let converter = Arc::new(found_converter);
+        let converter = ConverterBuilder::new_with_registry(registry)
+            .topic(&config.topic)
+            .ros_type(ros_type.clone())
+            .archetype(archetype_name)
+            .config(config.converter.clone())
+            .build()?;
+        let converter = Arc::new(converter);
         let cb_converter = converter.clone();
         debug!(
             "Creating subscription to topic '{}' with ROS type '{}' and archetype '{}'",
