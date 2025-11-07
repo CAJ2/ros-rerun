@@ -174,16 +174,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ament_rs"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68248386ad9d8f95d809309d97ae10ae5984818a563b30c13c9b44aa41f439da"
-dependencies = [
- "itertools 0.14.0",
- "walkdir",
-]
-
-[[package]]
 name = "android-activity"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1332,16 +1322,6 @@ dependencies = [
  "jobserver",
  "libc",
  "shlex",
-]
-
-[[package]]
-name = "cdr"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9617422bf43fde9280707a7e90f8f7494389c182f5c70b0f67592d0f06d41dfa"
-dependencies = [
- "byteorder",
- "serde",
 ]
 
 [[package]]
@@ -6161,7 +6141,7 @@ name = "rclrs"
 version = "0.6.0"
 source = "git+https://github.com/CAJ2/ros2_rust.git?branch=dynamic_messages#83c0f8e85ad23a9e8030fd53d92eaccd3b70ea8b"
 dependencies = [
- "ament_rs 0.2.1",
+ "ament_rs",
  "async-std",
  "async-stream",
  "cfg-if",
@@ -8322,12 +8302,9 @@ name = "ros_rerun"
 version = "0.1.0"
 dependencies = [
  "ahash",
- "ament_rs 0.3.0",
+ "ament_rs",
  "anyhow",
- "async-trait",
- "cdr",
  "clap",
- "dyn-clone",
  "env_logger",
  "log",
  "parking_lot",
@@ -8335,14 +8312,11 @@ dependencies = [
  "regex",
  "rerun",
  "ros_rerun_types",
- "rosidl_runtime_rs",
  "serde",
  "stream-cancel",
- "tempfile",
  "thiserror 1.0.69",
  "tokio",
  "toml",
- "widestring",
 ]
 
 [[package]]
@@ -8356,9 +8330,7 @@ dependencies = [
  "log",
  "rclrs",
  "rerun",
- "rosidl_runtime_rs",
  "serde",
- "stream-cancel",
  "thiserror 1.0.69",
  "toml",
 ]
@@ -10243,12 +10215,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "widestring"
-version = "1.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd7cf3379ca1aac9eea11fba24fd7e315d621f8dfe35c8d7d2be8b793726e07d"
-
-[[package]]
 name = "winapi"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11238,7 +11204,3 @@ dependencies = [
  "syn 2.0.108",
  "winnow",
 ]
-
-[[patch.unused]]
-name = "ros_rerun"
-version = "0.1.0"

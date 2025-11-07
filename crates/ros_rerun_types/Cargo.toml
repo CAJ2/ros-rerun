@@ -36,9 +36,7 @@ dyn-clone.workspace = true
 log.workspace = true
 rerun.workspace = true
 rclrs.workspace = true
-rosidl_runtime_rs.workspace = true
 serde.workspace = true
-stream-cancel.workspace = true
 thiserror.workspace = true
 toml.workspace = true
 

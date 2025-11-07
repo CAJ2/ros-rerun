@@ -34,23 +34,17 @@ ros_rerun_types.workspace = true
 ahash.workspace = true
 ament_rs.workspace = true
 anyhow.workspace = true
-async-trait.workspace = true
-cdr.workspace = true
 clap.workspace = true
-dyn-clone.workspace = true
 env_logger.workspace = true
 log.workspace = true
 parking_lot.workspace = true
 rclrs.workspace = true
 regex.workspace = true
 rerun.workspace = true
-rosidl_runtime_rs.workspace = true
 serde.workspace = true
 stream-cancel.workspace = true
-tempfile.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["full"] }
 toml.workspace = true
-widestring.workspace = true
 
 [dev-dependencies]
