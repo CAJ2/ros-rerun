@@ -1,3 +1,6 @@
+//! This crate provides converters between ROS message types and Rerun archetypes/components.
+//! It is a supporting crate for the `ros_rerun` crate.
+
 use rerun::ArchetypeName;
 use std::fmt::Display;
 
