@@ -19,10 +19,9 @@ rust-version = "1.90"
 ros_rerun_types = { path = "crates/ros_rerun_types", version = "=0.1.0" }
 
 ahash = "0.8.12"
-ament_rs = "0.3"
+ament_rs = "0.2.1"
 anyhow = "1"
 async-trait = "0.1.89"
-cdr = "0.2.4"
 clap = { version = "4.5.51", features = ["derive"] }
 dyn-clone = "1.0.20"
 env_logger = { version = "0.11.8", features = ["auto-color", "humantime"] }
@@ -33,14 +32,11 @@ rclrs = { git = "https://github.com/CAJ2/ros2_rust.git", branch = "dynamic_messa
 ] }
 regex = "1.12.2"
 rerun = { version = "0.26.2", features = ["dataframe", "glam", "image", "log", "sdk"] }
-rosidl_runtime_rs = "0.5.0"
 serde = { version = "1.0.219", features = ["derive"] }
 stream-cancel = "0.8.2"
-tempfile = "3.21.0"
 thiserror = "1"
 tokio = { version = "1.48.0", default-features = false }
 toml = "0.8.23"
-widestring = "1.2.0"
 
 
 [patch.crates-io]

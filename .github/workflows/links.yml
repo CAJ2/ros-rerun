@@ -30,4 +30,4 @@ jobs:
           fail: true
           # When given a directory, lychee checks only markdown, html and text files, everything else we have to glob in manually.
           args: |
-            --cache --max-cache-age 1d . "**/*.rs" "**/*.toml" "**/*.py" "**/*.yaml"
+            --cache --max-cache-age 1d --exclude-path deny.toml . "**/*.rs" "**/*.toml" "**/*.py" "**/*.yaml"
