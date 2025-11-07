@@ -67,16 +67,7 @@ pub struct TopicSource {
 
     /// Additional settings for the converter
     #[serde(flatten)]
-    pub converter: ConverterSettings,
-}
-
-#[derive(Deserialize, Serialize, Clone, Default, Debug, PartialEq)]
-pub struct ConverterSettings(toml::Table);
-
-impl ConverterSettings {
-    pub fn get(&self, key: &str) -> Option<&toml::Value> {
-        self.0.get(key)
-    }
+    pub converter: toml::Table,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq, Eq)]

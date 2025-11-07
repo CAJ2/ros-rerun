@@ -2,13 +2,13 @@ use std::sync::Arc;
 
 use log::{debug, error};
 use rclrs::DynamicSubscription;
+use ros_rerun_types::{
+    converter::{Converter, ConverterBuilder, ConverterRegistry, ConverterSettings},
+    ROSTypeName, RerunName,
+};
 use stream_cancel::Tripwire;
 
 use crate::{
-    archetypes::{
-        archetype::{ArchetypeConverter, ConverterBuilder, ConverterRegistry},
-        ROSTypeName,
-    },
     channel::{ArchetypeReceiver, ArchetypeSender, LogComponents, LogData},
     config::{DBConfig, StreamConfig, TopicSource},
 };
@@ -16,7 +16,7 @@ use crate::{
 pub struct SubscriptionWorker {
     topic: String,
     _subscription: DynamicSubscription,
-    _converter: Arc<Box<dyn ArchetypeConverter>>,
+    _converter: Arc<Box<dyn Converter>>,
 }
 
 impl SubscriptionWorker {
@@ -34,7 +34,8 @@ impl SubscriptionWorker {
         registry: &ConverterRegistry,
         channel: ArchetypeSender,
     ) -> anyhow::Result<Self> {
-        let archetype_name = rerun::ArchetypeName::from(config.archetype.as_str());
+        let rerun_name =
+            RerunName::RerunArchetype(rerun::ArchetypeName::from(config.archetype.as_str()));
         // TODO: Handle message type auto-discovery
         let valid_ros_type = config
             .ros_type
@@ -45,14 +46,15 @@ impl SubscriptionWorker {
         let converter = ConverterBuilder::new_with_registry(registry)
             .topic(&config.topic)
             .ros_type(ros_type.clone())
-            .archetype(archetype_name)
-            .config(config.converter.clone())
+            .rerun_name(rerun_name.clone())
+            .config(ConverterSettings(config.converter.clone()))
             .build()?;
         let converter = Arc::new(converter);
         let cb_converter = converter.clone();
+        let topic = Arc::new(config.topic.clone());
         debug!(
             "Creating subscription to topic '{}' with ROS type '{}' and archetype '{}'",
-            config.topic, ros_type, archetype_name
+            config.topic, ros_type, rerun_name,
         );
 
         let sub = node.create_dynamic_subscription(
@@ -61,9 +63,15 @@ impl SubscriptionWorker {
             move |msg: rclrs::DynamicMessage, _info: rclrs::MessageInfo| {
                 let instance = cb_converter.clone();
                 let channel = channel.clone();
+                let topic = topic.clone();
                 tokio::spawn(async move {
                     for tx in channel.tx {
-                        if let Ok(arch_msg) = instance.convert(msg.view()).await {
+                        if let Ok(convert_data) = instance.convert_view(msg.view()).await {
+                            let arch_msg = LogData::Archetype(LogComponents {
+                                entity_path: topic.clone(),
+                                header: convert_data.header,
+                                components: convert_data.components,
+                            });
                             if let Err(err) = tx.send(arch_msg) {
                                 error!("Failed to send archetype data: {err:?}");
                             }
@@ -122,7 +130,7 @@ impl Drop for GRPCSinkWorker {
 
 fn send_log_comps(rec_stream: &rerun::RecordingStream, data: &LogComponents) {
     if let Err(err) = rec_stream.log(
-        data.entity_path.as_ref(),
+        data.entity_path.as_str(),
         &data.components.as_serialized_batches(),
     ) {
         error!("Failed to send log components: {err}");

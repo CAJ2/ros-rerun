@@ -1,11 +1,11 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/ros_rerun",
+    "crates/ros_rerun", "crates/ros_rerun_types",
 ]
 
 [workspace.package]
-authors = ["rerun.io <opensource@rerun.io>", "Christian Johansen <johansen.christian.a@gmail.com>"]
+authors = ["Christian Johansen <johansen.christian.a@gmail.com>", "rerun.io <opensource@rerun.io>"]
 edition = "2021"
 homepage = "https://github.com/CAJ2/ros-rerun"
 include = ["LICENSE-APACHE", "LICENSE-MIT", "**/*.rs", "Cargo.toml"]
@@ -16,6 +16,8 @@ rust-version = "1.90"
 
 
 [workspace.dependencies]
+ros_rerun_types = { path = "crates/ros_rerun_types", version = "=0.1.0" }
+
 ahash = "0.8.12"
 ament_rs = "0.3"
 anyhow = "1"

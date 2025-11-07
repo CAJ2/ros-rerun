@@ -6,9 +6,9 @@ use log::error;
 use parking_lot::Mutex;
 use rclrs::{Executor, Node, Promise};
 use rerun::external::re_log::error_once;
+use ros_rerun_types::{converter::ConverterRegistry, ROSTypeName};
 
 use crate::{
-    archetypes::{archetype::ConverterRegistry, ROSTypeName},
     config::CONFIG,
     topology::{parse_topology_config, TopologyState},
 };
