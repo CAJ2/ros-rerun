@@ -6,7 +6,6 @@
 //! that can be installed on a ROS2 system to stream data to Rerun viewer(s),
 //! often over a network, or to record data locally for later playback.
 
-pub mod archetypes;
 pub mod ros_introspection;
 
 pub mod channel;

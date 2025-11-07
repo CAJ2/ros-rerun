@@ -1,8 +1,14 @@
+//! This crate provides converters between ROS message types and Rerun archetypes/components.
+//! It is a supporting crate for the `ros_rerun` crate.
+
+use rerun::ArchetypeName;
 use std::fmt::Display;
 
-pub mod archetype;
+pub mod converters;
+
+pub mod converter;
 pub mod dynamic_message;
-pub mod text;
+pub mod register;
 
 /// Represents a runtime-checked ROS message type.
 ///
@@ -65,7 +71,7 @@ impl Display for ROSTypeName {
 /// This is meant for constant references to ROS message types.
 /// We do not know until runtime whether a type definition
 /// is actually available, so use `ROSTypeName` for validation.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct ROSTypeString<'a>(&'a str, &'a str);
 
 impl PartialEq<ROSTypeString<'_>> for ROSTypeName {
@@ -82,6 +88,27 @@ impl PartialEq<ROSTypeName> for ROSTypeString<'_> {
 
 impl Display for ROSTypeString<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}/msg/{}", self.0, self.1)
+        if self.0.is_empty() && self.1.is_empty() {
+            write!(f, "<ANY>")
+        } else {
+            write!(f, "{}/msg/{}", self.0, self.1)
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum RerunName {
+    RerunArchetype(ArchetypeName),
+    ROSArchetype(ArchetypeName),
+    Components,
+}
+
+impl Display for RerunName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::RerunArchetype(name) => write!(f, "{name} (Rerun archetype)"),
+            Self::ROSArchetype(name) => write!(f, "{name} (ROS archetype)"),
+            Self::Components => write!(f, "<Rerun components>"),
+        }
     }
 }

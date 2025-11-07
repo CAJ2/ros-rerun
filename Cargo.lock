@@ -8334,6 +8334,7 @@ dependencies = [
  "rclrs",
  "regex",
  "rerun",
+ "ros_rerun_types",
  "rosidl_runtime_rs",
  "serde",
  "stream-cancel",
@@ -8342,6 +8343,24 @@ dependencies = [
  "tokio",
  "toml",
  "widestring",
+]
+
+[[package]]
+name = "ros_rerun_types"
+version = "0.1.0"
+dependencies = [
+ "ahash",
+ "anyhow",
+ "async-trait",
+ "dyn-clone",
+ "log",
+ "rclrs",
+ "rerun",
+ "rosidl_runtime_rs",
+ "serde",
+ "stream-cancel",
+ "thiserror 1.0.69",
+ "toml",
 ]
 
 [[package]]

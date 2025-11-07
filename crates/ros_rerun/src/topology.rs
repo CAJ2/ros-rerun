@@ -2,12 +2,12 @@ use std::{collections::BTreeMap, fmt::Display};
 
 use ahash::{HashMap, HashMapExt as _, HashSet, HashSetExt as _};
 use log::{debug, error};
+use ros_rerun_types::converter::ConverterRegistry;
 use stream_cancel::{Trigger, Tripwire};
 use thiserror::Error;
 use tokio::sync::mpsc::unbounded_channel;
 
 use crate::{
-    archetypes::archetype::ConverterRegistry,
     channel::{ArchetypeReceiver, ArchetypeSender, LogData},
     config::{defs::Config, DBConfig, StreamConfig, TopicSource},
     worker::{DBSinkWorker, GRPCSinkWorker, SubscriptionWorker},
