@@ -6139,7 +6139,7 @@ dependencies = [
 [[package]]
 name = "rclrs"
 version = "0.6.0"
-source = "git+https://github.com/CAJ2/ros2_rust.git?branch=dynamic_messages#83c0f8e85ad23a9e8030fd53d92eaccd3b70ea8b"
+source = "git+https://github.com/CAJ2/ros2_rust.git?branch=dynamic_messages#96c933368a86c534feb946daa3892ead7d402128"
 dependencies = [
  "ament_rs",
  "async-std",
@@ -8331,6 +8331,7 @@ dependencies = [
  "rclrs",
  "rerun",
  "serde",
+ "serde_bytes",
  "thiserror 1.0.69",
  "toml",
 ]

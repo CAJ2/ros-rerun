@@ -33,6 +33,7 @@ rclrs = { git = "https://github.com/CAJ2/ros2_rust.git", branch = "dynamic_messa
 regex = "1.12.2"
 rerun = { version = "0.26.2", features = ["dataframe", "glam", "image", "log", "sdk"] }
 serde = { version = "1.0.219", features = ["derive"] }
+serde_bytes = "0.11.19"
 stream-cancel = "0.8.2"
 thiserror = "1"
 tokio = { version = "1.48.0", default-features = false }
