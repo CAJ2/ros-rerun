@@ -5,6 +5,7 @@ use rerun::ArchetypeName;
 use std::fmt::Display;
 
 pub mod converters;
+pub mod definitions;
 
 pub mod converter;
 pub mod dynamic_message;
