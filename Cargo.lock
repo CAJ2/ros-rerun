@@ -6139,7 +6139,7 @@ dependencies = [
 [[package]]
 name = "rclrs"
 version = "0.6.0"
-source = "git+https://github.com/CAJ2/ros2_rust.git?branch=dynamic_messages#96c933368a86c534feb946daa3892ead7d402128"
+source = "git+https://github.com/CAJ2/ros2_rust.git?branch=dyn_msg_serde#f2c9fc26e0eaadc3b00b51eb08be8e87e78cc567"
 dependencies = [
  "ament_rs",
  "async-std",
@@ -6150,6 +6150,8 @@ dependencies = [
  "libloading",
  "rosidl_runtime_rs",
  "rustflags",
+ "serde",
+ "serde-big-array",
  "tokio",
  "tokio-stream",
  "uuid",
@@ -8343,6 +8345,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b00ea2ee34606be89514fe2ba100b5fc6165e0f682824f1462f9b09105975566"
 dependencies = [
  "cfg-if",
+ "serde",
 ]
 
 [[package]]
@@ -8553,6 +8556,15 @@ checksum = "9a8e94ea7f378bd32cbbd37198a4a91436180c5bb472411e48b5ec2e2124ae9e"
 dependencies = [
  "serde_core",
  "serde_derive",
+]
+
+[[package]]
+name = "serde-big-array"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "11fc7cc2c76d73e0f27ee52abbd64eec84d46f370c88371120433196934e4b7f"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
