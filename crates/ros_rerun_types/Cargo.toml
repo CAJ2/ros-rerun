@@ -32,6 +32,7 @@ default = []
 ahash.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true
+byteorder.workspace = true
 dyn-clone.workspace = true
 log.workspace = true
 rerun.workspace = true
