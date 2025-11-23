@@ -22,6 +22,7 @@ ahash = "0.8.12"
 ament_rs = "0.2.1"
 anyhow = "1"
 async-trait = "0.1.89"
+byteorder = "1.5.0"
 clap = { version = "4.5.51", features = ["derive"] }
 dyn-clone = "1.0.20"
 env_logger = { version = "0.11.8", features = ["auto-color", "humantime"] }

@@ -8328,6 +8328,7 @@ dependencies = [
  "ahash",
  "anyhow",
  "async-trait",
+ "byteorder",
  "dyn-clone",
  "log",
  "rclrs",
