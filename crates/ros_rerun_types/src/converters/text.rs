@@ -1,12 +1,10 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 use rclrs::BaseType;
 use rerun::Archetype as _;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    converter::{Converter, ConverterCfg, ConverterData, ConverterError, ConverterSettings},
+    converter::{Converter, ConverterCfg, ConverterError, ConverterSettings, LogPacket},
     dynamic_message::MessageVisitor as _,
     ROSTypeString, RerunName,
 };
@@ -70,12 +68,9 @@ impl Converter for StdStringToTextDocument {
     async fn convert_view<'a>(
         &self,
         msg: rclrs::DynamicMessageView<'a>,
-    ) -> anyhow::Result<ConverterData, ConverterError> {
+    ) -> anyhow::Result<LogPacket, ConverterError> {
         if let Some(text) = msg.get_string("data") {
-            Ok(ConverterData {
-                header: None,
-                components: Arc::new(rerun::TextDocument::new(text)),
-            })
+            Ok(LogPacket::new(rerun::TextDocument::new(text)))
         } else {
             Err(ConverterError::Conversion(
                 self.rerun_name(),
@@ -112,7 +107,7 @@ impl Converter for AnyToTextDocument {
     async fn convert_view<'a>(
         &self,
         msg: rclrs::DynamicMessageView<'a>,
-    ) -> anyhow::Result<ConverterData, ConverterError> {
+    ) -> anyhow::Result<LogPacket, ConverterError> {
         let text = msg
             .iter_by_type(BaseType::String)
             .map(|value| match value {
@@ -124,9 +119,6 @@ impl Converter for AnyToTextDocument {
                 acc
             })
             .unwrap_or_default();
-        Ok(ConverterData {
-            header: None,
-            components: Arc::new(rerun::TextDocument::new(text)),
-        })
+        Ok(LogPacket::new(rerun::TextDocument::new(text)))
     }
 }

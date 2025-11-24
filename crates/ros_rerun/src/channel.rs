@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
-use rerun::AsComponents;
-use ros_rerun_types::converter::Header;
+use ros_rerun_types::converter::LogPacket;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 /// Represents any log data that can be sent between topology components
@@ -15,8 +14,7 @@ pub enum LogData {
 /// All data for logging a Rerun archetype or custom components
 pub struct LogComponents {
     pub entity_path: Arc<String>,
-    pub header: Option<Arc<Header>>,
-    pub components: Arc<dyn AsComponents + Send + Sync>,
+    pub packet: LogPacket,
 }
 
 #[derive(Clone)]

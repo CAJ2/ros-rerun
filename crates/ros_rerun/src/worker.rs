@@ -69,8 +69,7 @@ impl SubscriptionWorker {
                         if let Ok(convert_data) = instance.convert_view(msg.view()).await {
                             let arch_msg = LogData::Archetype(LogComponents {
                                 entity_path: topic.clone(),
-                                header: convert_data.header,
-                                components: convert_data.components,
+                                packet: convert_data,
                             });
                             if let Err(err) = tx.send(arch_msg) {
                                 error!("Failed to send archetype data: {err:?}");
@@ -131,7 +130,7 @@ impl Drop for GRPCSinkWorker {
 fn send_log_comps(rec_stream: &rerun::RecordingStream, data: &LogComponents) {
     if let Err(err) = rec_stream.log(
         data.entity_path.as_str(),
-        &data.components.as_serialized_batches(),
+        &data.packet.as_serialized_batches(),
     ) {
         error!("Failed to send log components: {err}");
     }

@@ -6,6 +6,7 @@ use std::fmt::Display;
 
 pub mod converters;
 pub mod definitions;
+pub mod parsers;
 
 pub mod converter;
 pub mod dynamic_message;

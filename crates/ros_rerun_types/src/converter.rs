@@ -23,6 +23,9 @@ pub enum ConverterError {
     #[error("invalid conversion config for archetype {0} and ROS type {1}: {2}")]
     InvalidConfig(RerunName, String, anyhow::Error),
 
+    #[error("failed to deserialize ROS message")]
+    Deserialization(#[source] rclrs::dynamic_message::DynamicMessageError),
+
     #[error("conversion error for {0} from ROS type {1}: {2}")]
     Conversion(RerunName, String, anyhow::Error),
 }
@@ -47,15 +50,62 @@ dyn_clone::clone_trait_object!(ConverterCfg);
 /// Maps to the ROS `std_msgs/Header` definition
 /// and used to set the logged timepoint and
 /// the coordinate frame of reference.
-#[derive(Default)]
 pub struct Header {
-    pub time: rerun::TimePoint,
-    pub frame: Option<String>,
+    pub time: rerun::TimeCell,
+    pub frame_id: Option<String>,
 }
 
-pub struct ConverterData {
-    pub header: Option<Arc<Header>>,
-    pub components: Arc<dyn rerun::AsComponents + Send + Sync>,
+impl Default for Header {
+    fn default() -> Self {
+        Self {
+            time: rerun::TimeCell::timestamp_now(),
+            frame_id: None,
+        }
+    }
+}
+
+impl From<crate::definitions::std_msgs::Header> for Header {
+    fn from(header: crate::definitions::std_msgs::Header) -> Self {
+        let time = if header.stamp.sec == 0 && header.stamp.nanosec == 0 {
+            rerun::TimeCell::timestamp_now()
+        } else {
+            rerun::TimeCell::from_timestamp_nanos_since_epoch(
+                (header.stamp.sec as i64) * 1_000_000_000 + (header.stamp.nanosec as i64),
+            )
+        };
+        Self {
+            time,
+            frame_id: if header.frame_id.is_empty() {
+                None
+            } else {
+                Some(header.frame_id)
+            },
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct LogPacket {
+    components: Arc<dyn rerun::AsComponents + Send + Sync>,
+    header: Option<Arc<Header>>,
+}
+
+impl LogPacket {
+    pub fn new(components: impl rerun::AsComponents + Send + Sync + 'static) -> Self {
+        Self {
+            components: Arc::new(components),
+            header: None,
+        }
+    }
+
+    pub fn with_header(mut self, header: impl Into<Arc<Header>>) -> Self {
+        self.header = Some(header.into());
+        self
+    }
+
+    pub fn as_serialized_batches(&self) -> Vec<rerun::SerializedComponentBatch> {
+        self.components.as_serialized_batches()
+    }
 }
 
 /// Trait for converting ROS messages into Rerun archetypes/components.
@@ -73,7 +123,7 @@ pub trait Converter: DynClone + Send + Sync {
     async fn convert_view<'a>(
         &self,
         msg: rclrs::DynamicMessageView<'a>,
-    ) -> Result<ConverterData, ConverterError>;
+    ) -> Result<LogPacket, ConverterError>;
 }
 
 dyn_clone::clone_trait_object!(Converter);
