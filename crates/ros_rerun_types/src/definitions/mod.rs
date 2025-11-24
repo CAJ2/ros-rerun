@@ -4,7 +4,8 @@
 //! ROS2 message definitions, allowing for deserialization of MCAP files containing
 //! ROS2 data into idiomatic Rust structs.
 //!
-//! Based on the definitions from Rerun: https://github.com/rerun-io/rerun/tree/main/crates/utils/re_mcap/src/parsers/ros2msg/definitions
+//! Based on the definitions from Rerun which are dual-licensed under Apache-2.0 and MIT:
+//! [re_mcap/src/parsers/ros2msg/definitions](https://github.com/rerun-io/rerun/tree/main/crates/utils/re_mcap/src/parsers/ros2msg/definitions)
 
 pub mod builtin_interfaces;
 pub mod geometry_msgs;
